@@ -1,0 +1,23 @@
+{
+  "id": "vale_do_leste",
+  "name": "Vale do Leste",
+  "mapIndex": 1,
+  "tileset": "bosque",
+  "tilesetName": "Vales & Bosques Densos",
+  "players": "2 - 4 Jogadores",
+  "suggestedPlayers": 2,
+  "size": "80 x 80 (Médio)",
+  "width": 80,
+  "height": 80,
+  "author": "Reino dos Bravos",
+  "description": "Terreno acidentado cercado por densas copas de árvores e desfiladeiros sinuosos. Favorece emboscadas com arqueiros e estrangulamentos táticos.",
+  "preview": null,
+  "palette": {
+    "grass": "#386532",
+    "tree": "#1c3c13",
+    "water": "#244a72",
+    "mountain": "#545454",
+    "gold": "#ffd700",
+    "path": "#7d6342"
+  }
+}

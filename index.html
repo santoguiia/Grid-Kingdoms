@@ -1,0 +1,3094 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kingdom Wars - RTS Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        #uiOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #resourceBar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            background: linear-gradient(180deg, rgba(20, 15, 10, 0.95), rgba(40, 30, 20, 0.9));
+            border: 2px solid #8b7355;
+            border-radius: 8px;
+            padding: 8px 20px;
+            pointer-events: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        .resource {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e8d5b7;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .resource-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .gold-icon {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .wood-icon {
+            background: linear-gradient(135deg, #8b4513, #654321);
+            box-shadow: 0 0 10px rgba(139, 69, 19, 0.5);
+        }
+
+        .food-icon {
+            background: linear-gradient(135deg, #228b22, #006400);
+            box-shadow: 0 0 10px rgba(34, 139, 34, 0.5);
+        }
+
+        .resource-value {
+            min-width: 50px;
+        }
+
+        #commandPanel {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: linear-gradient(0deg, rgba(20, 15, 10, 0.95), rgba(40, 30, 20, 0.9));
+            border: 2px solid #8b7355;
+            border-radius: 8px;
+            padding: 10px;
+            pointer-events: auto;
+            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        .command-btn {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3a2f20, #2a1f10);
+            border: 2px solid #6b5b3a;
+            border-radius: 6px;
+            color: #e8d5b7;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .command-btn:hover {
+            background: linear-gradient(135deg, #4a3f30, #3a2f20);
+            border-color: #8b7355;
+            transform: translateY(-2px);
+        }
+
+        .command-btn:active {
+            transform: translateY(0);
+        }
+
+        .command-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .command-btn .icon {
+            font-size: 24px;
+        }
+
+        .command-btn .cost {
+            font-size: 9px;
+            color: #a89070;
+        }
+
+        #minimap {
+            position: fixed;
+            bottom: 90px;
+            right: 10px;
+            width: 180px;
+            height: 180px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #8b7355;
+            border-radius: 8px;
+            pointer-events: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+        }
+
+        #unitInfo {
+            position: absolute;
+            bottom: 90px;
+            left: 10px;
+            width: 250px;
+            background: linear-gradient(135deg, rgba(20, 15, 10, 0.95), rgba(40, 30, 20, 0.9));
+            border: 2px solid #8b7355;
+            border-radius: 8px;
+            padding: 15px;
+            color: #e8d5b7;
+            pointer-events: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        #unitInfo h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #ffd700;
+        }
+
+        .stat-bar {
+            margin: 5px 0;
+        }
+
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .bar-container {
+            height: 12px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s;
+        }
+
+        .health-bar {
+            background: linear-gradient(90deg, #ff4444, #ff6666);
+        }
+
+        .mana-bar {
+            background: linear-gradient(90deg, #4444ff, #6666ff);
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a0f00, #0a0500);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 100;
+        }
+
+        #startScreen h1 {
+            font-size: 72px;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.8);
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+
+        #startScreen p {
+            color: #a89070;
+            font-size: 18px;
+            margin-bottom: 40px;
+        }
+
+        /* ==================== WARCRAFT 3 STYLE MAP SELECTION ==================== */
+        #mapSelection {
+            position: absolute;
+            inset: 0;
+            z-index: 120;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background: radial-gradient(circle at center, rgba(30, 24, 18, 0.95), rgba(8, 7, 6, 0.98)),
+                linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
+            color: #e8d5b7;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+        }
+
+        #mapSelection.visible {
+            display: flex;
+        }
+
+        .wc3-dialog {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+            border-radius: 0;
+            border: none;
+            background: linear-gradient(180deg, #1b1612 0%, #120e0b 100%);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: 24px 32px;
+            box-sizing: border-box;
+        }
+
+        /* Cantos ornamentados de metal/pedra */
+        .wc3-dialog::before,
+        .wc3-dialog::after {
+            content: "❖";
+            position: absolute;
+            color: #d4af37;
+            font-size: 16px;
+            text-shadow: 0 0 6px #ffd700;
+        }
+
+        .wc3-dialog::before {
+            top: 4px;
+            left: 6px;
+        }
+
+        .wc3-dialog::after {
+            top: 4px;
+            right: 6px;
+        }
+
+        .wc3-header {
+            text-align: center;
+            border-bottom: 2px solid #5a4732;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .wc3-header h2 {
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #ffd700;
+            font-size: 24px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 215, 0, 0.4);
+            margin: 0 0 4px 0;
+        }
+
+        .wc3-header p {
+            color: #a89070;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .wc3-scan-status {
+            position: absolute;
+            right: 0;
+            top: 4px;
+            font-size: 11px;
+            color: #8b7355;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wc3-scan-badge {
+            background: #251d16;
+            border: 1px solid #5a4732;
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: #d4af37;
+        }
+
+        .wc3-body {
+            display: grid;
+            grid-template-columns: 1fr 310px;
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+            /* essencial para flex/grid rolável */
+        }
+
+        /* Lista de mapas à esquerda */
+        .wc3-map-list-wrapper {
+            display: flex;
+            flex-direction: column;
+            background: rgba(10, 8, 6, 0.8);
+            border: 2px solid #5a4732;
+            border-radius: 4px;
+            padding: 6px;
+            min-height: 0;
+        }
+
+        .wc3-list-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: #1e1711;
+            border-bottom: 1px solid #3d2f22;
+            font-size: 12px;
+            color: #d4af37;
+            font-weight: bold;
+        }
+
+        .wc3-map-list {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 6px 4px;
+        }
+
+        .wc3-map-list::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .wc3-map-list::-webkit-scrollbar-track {
+            background: #110d0a;
+            border-left: 1px solid #3d2f22;
+        }
+
+        .wc3-map-list::-webkit-scrollbar-thumb {
+            background: #5a4732;
+            border: 1px solid #8b7355;
+            border-radius: 2px;
+        }
+
+        .wc3-map-list::-webkit-scrollbar-thumb:hover {
+            background: #8b7355;
+        }
+
+        .wc3-map-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: linear-gradient(90deg, #1d1611 0%, #17110d 100%);
+            border: 1px solid #3d2f22;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+            position: relative;
+        }
+
+        .wc3-map-card:hover {
+            background: linear-gradient(90deg, #2b2018 0%, #201610 100%);
+            border-color: #8b7355;
+            transform: translateX(2px);
+        }
+
+        .wc3-map-card.selected {
+            background: linear-gradient(90deg, #3d2b18 0%, #261b11 100%);
+            border: 1px solid #d4af37;
+            box-shadow: inset 0 0 10px rgba(212, 175, 55, 0.25), 0 0 6px rgba(212, 175, 55, 0.3);
+        }
+
+        .wc3-map-card.selected::before {
+            content: "▶";
+            position: absolute;
+            left: 4px;
+            color: #ffd700;
+            font-size: 9px;
+        }
+
+        .wc3-map-card.selected {
+            padding-left: 16px;
+        }
+
+        .wc3-map-icon {
+            font-size: 22px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #4a3a29;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .wc3-map-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wc3-map-meta-title {
+            color: #f3e5cb;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 0.03em;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .wc3-map-card.selected .wc3-map-meta-title {
+            color: #ffd700;
+        }
+
+        .wc3-map-meta-subtitle {
+            font-size: 11px;
+            color: #8b7355;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wc3-map-card.corrupted {
+            opacity: 0.7;
+            border-color: #7f1d1d;
+        }
+
+        .wc3-map-card.corrupted .wc3-map-meta-title {
+            color: #fca5a5;
+        }
+
+        /* Coluna Direita: Preview (Minimapa) e Detalhes */
+        .wc3-preview-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+        }
+
+        .wc3-minimap-frame {
+            background: #000;
+            border: 3px solid #8b7355;
+            border-radius: 4px;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 0, 0, 0.9);
+            padding: 6px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .wc3-minimap-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #d4af37;
+            margin-bottom: 4px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #wc3MapPreviewCanvas {
+            width: 180px;
+            height: 180px;
+            background: #0d1214;
+            border: 1px solid #4a3a29;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
+            image-rendering: pixelated;
+        }
+
+        .wc3-map-details-box {
+            flex: 1;
+            background: rgba(14, 11, 8, 0.85);
+            border: 1px solid #4a3a29;
+            border-radius: 4px;
+            padding: 8px 10px;
+            overflow: hidden;
+            font-size: 11.5px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-height: 0;
+        }
+
+        .wc3-detail-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(139, 115, 85, 0.15);
+            padding-bottom: 2px;
+        }
+
+        .wc3-detail-label {
+            color: #8b7355;
+            font-weight: bold;
+        }
+
+        .wc3-detail-val {
+            color: #e8d5b7;
+            font-weight: 500;
+        }
+
+        .wc3-detail-desc {
+            color: #c4b59d;
+            font-style: italic;
+            margin-top: 4px;
+            line-height: 1.3;
+            font-size: 11px;
+            overflow-y: auto;
+        }
+
+        /* Rodapé de Ações */
+        .wc3-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #5a4732;
+            padding-top: 14px;
+            margin-top: 12px;
+        }
+
+        .wc3-folder-hint {
+            font-size: 11.5px;
+            color: #a89070;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wc3-folder-hint code {
+            background: #221a13;
+            border: 1px solid #5a4732;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #ffd700;
+            font-family: monospace;
+        }
+
+        .wc3-footer-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ==================== WARCRAFT 3 CLASSIC RTS LOBBY THEME ==================== */
+        .wc3-fullscreen-overlay {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, rgba(20, 24, 30, 0.95), rgba(6, 8, 10, 0.98)),
+                linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8));
+            color: #d1d5db;
+            z-index: 125;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .wc3-fullscreen-overlay.visible {
+            display: flex;
+        }
+
+        /* Moldura de ferro escuro c/ rebites e borda azul gélido/bronze */
+        .wc3-window-container {
+            display: flex;
+            gap: 20px;
+            width: 100vw;
+            height: 100vh;
+            padding: 24px 32px;
+            box-sizing: border-box;
+        }
+
+        .wc3-main-frame {
+            flex: 1;
+            background: linear-gradient(180deg, #181c20 0%, #0d1012 100%);
+            border: 3px solid #3a4752;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(0, 0, 0, 0.8);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            width: 340px;
+            position: relative;
+            min-width: 0;
+        }
+
+        /* Moldura lateral direita suspensa estilo Warcraft 3 (painel de minimapa & detalhes) */
+        .wc3-side-frame {
+            width: 290px;
+            background: linear-gradient(180deg, #161a1e 0%, #0a0c0e 100%);
+            border: 3px solid #3a4752;
+            box-shadow: 0 0 35px rgba(0, 0, 0, 0.85), inset 0 0 15px rgba(0, 0, 0, 0.9);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 14px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        /* Cabeçalho do painel esquerdo */
+        .wc3-top-title-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #2d3742;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .wc3-title-gold {
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #ffd700;
+            font-size: 22px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9), 0 0 10px rgba(255, 215, 0, 0.4);
+            margin: 0;
+        }
+
+        .wc3-subtitle-ice {
+            font-size: 11px;
+            color: #93c5fd;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* Layout de 2 colunas da tela Criar Jogo */
+        .wc3-create-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Coluna de opções à esquerda */
+        .wc3-options-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(10, 13, 16, 0.6);
+            border: 1px solid #293440;
+            border-radius: 4px;
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        .wc3-input-label {
+            color: #ffd700;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .wc3-text-input {
+            width: 100%;
+            background: #090c0e;
+            border: 2px solid #6b2121;
+            border-radius: 3px;
+            color: #f3f4f6;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .wc3-text-input:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .wc3-input-hint {
+            color: #ef4444;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        /* Coluna central de lista de pastas / arquivos */
+        .wc3-files-col {
+            display: flex;
+            flex-direction: column;
+            background: rgba(8, 10, 12, 0.8);
+            border: 2px solid #2b3642;
+            border-radius: 4px;
+            min-height: 0;
+        }
+
+        .wc3-files-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #192028;
+            border-bottom: 1px solid #2e3b48;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .wc3-files-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .wc3-file-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 10px;
+            background: #101418;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #e2e8f0;
+            transition: all 0.1s ease;
+        }
+
+        .wc3-file-row:hover {
+            background: #1c232a;
+            border-color: #4b5d6e;
+        }
+
+        .wc3-file-row.selected {
+            background: linear-gradient(90deg, #2e2612 0%, #1c1a14 100%);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            box-shadow: inset 0 0 6px rgba(255, 215, 0, 0.2);
+        }
+
+        .wc3-file-icon {
+            font-size: 16px;
+        }
+
+        .wc3-file-name {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .wc3-file-players {
+            font-size: 11px;
+            color: #94a3b8;
+            background: #1e293b;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        /* Lateral Direita (Preview e Botão de Ação) */
+        .wc3-side-preview-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #06080a;
+            border: 2px solid #2d3946;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
+            margin-bottom: 12px;
+        }
+
+        .wc3-side-preview-canvas {
+            width: 200px;
+            height: 200px;
+            background: #0b0e11;
+            border: 1px solid #1f2933;
+            image-rendering: pixelated;
+        }
+
+        .wc3-side-info-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 11.5px;
+            color: #cbd5e1;
+            overflow-y: auto;
+        }
+
+        .wc3-side-info-title {
+            color: #ffd700;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            text-align: center;
+        }
+
+        .wc3-side-info-author {
+            color: #94a3b8;
+            font-size: 10.5px;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+
+        .wc3-side-desc {
+            font-style: italic;
+            color: #94a3b8;
+            line-height: 1.35;
+            margin-top: 4px;
+            border-top: 1px solid #1e293b;
+            padding-top: 6px;
+        }
+
+        /* Botões clássicos RTS Warcraft 3 com acabamento em pedra/bronze chanfrado */
+        .wc3-action-btn {
+            background: linear-gradient(180deg, #243547 0%, #131d27 100%);
+            border: 2px solid #486178;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #ffd700;
+            font-family: Georgia, serif;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+
+        .wc3-action-btn:hover {
+            background: linear-gradient(180deg, #2f455c 0%, #1b2938 100%);
+            border-color: #6184a3;
+            box-shadow: 0 0 12px rgba(97, 132, 163, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .wc3-action-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+        }
+
+        .wc3-action-btn.primary {
+            background: linear-gradient(180deg, #1b3d68 0%, #0e2440 100%);
+            border-color: #3b82f6;
+            color: #93c5fd;
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+        }
+
+        .wc3-action-btn.primary:hover {
+            background: linear-gradient(180deg, #255490 0%, #14355e 100%);
+            border-color: #60a5fa;
+            color: #ffffff;
+        }
+
+        /* ==================== GAME LOBBY ROOM SCREEN ==================== */
+        .wc3-lobby-header-bar {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr 1fr;
+            background: #0d1115;
+            border: 2px solid #28333e;
+            border-radius: 4px;
+            padding: 8px 14px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .wc3-lobby-header-item {
+            color: #ffd700;
+            font-weight: bold;
+            letter-spacing: 0.04em;
+        }
+
+        .wc3-lobby-header-item span {
+            color: #f3f4f6;
+            font-weight: normal;
+        }
+
+        /* Tabela central de slots de jogadores */
+        .wc3-slots-container {
+            flex: 1;
+            background: rgba(8, 10, 12, 0.9);
+            border: 2px solid #2b3642;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        .wc3-slot-row {
+            display: grid;
+            grid-template-columns: 40px 2fr 1.2fr 1.4fr 1.2fr;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-bottom: 1px solid #1c242c;
+            background: #0e1216;
+            font-size: 12.5px;
+            transition: background 0.15s;
+        }
+
+        .wc3-slot-row:hover {
+            background: #141a20;
+        }
+
+        .wc3-slot-row.host-slot {
+            background: linear-gradient(90deg, #182330 0%, #10161d 100%);
+            border-left: 3px solid #3b82f6;
+        }
+
+        .wc3-slot-col {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wc3-slot-col.col-idx {
+            color: #64748b;
+            font-weight: bold;
+        }
+
+        .wc3-slot-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .wc3-host-crown {
+            font-size: 14px;
+            color: #ffd700;
+        }
+
+        .wc3-slot-status-name {
+            color: #94a3b8;
+            font-size: 11.5px;
+        }
+
+        /* Selects estilizados dentro dos slots */
+        .wc3-slot-select {
+            background: #090c0e;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11.5px;
+            outline: none;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .wc3-slot-select:focus {
+            border-color: #ffd700;
+        }
+
+        .wc3-color-picker-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .wc3-color-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            border: 1px solid #fff;
+            flex-shrink: 0;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Bate-papo inferior no Lobby */
+        .wc3-chat-section {
+            height: 140px;
+            background: #080a0c;
+            border: 2px solid #232b35;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .wc3-chat-log {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            font-size: 12px;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding-right: 4px;
+        }
+
+        .wc3-chat-line {
+            line-height: 1.35;
+        }
+
+        .wc3-chat-sender {
+            font-weight: bold;
+        }
+
+        .wc3-chat-text {
+            color: #f1f5f9;
+        }
+
+        .wc3-chat-input-bar {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .wc3-chat-input {
+            flex: 1;
+            background: #0e1216;
+            border: 1px solid #334155;
+            border-radius: 3px;
+            color: #f8fafc;
+            padding: 6px 10px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .wc3-chat-input:focus {
+            border-color: #3b82f6;
+        }
+
+
+
+        .menu-kicker {
+            color: var(--accent);
+            font: 11px 'Segoe UI', sans-serif;
+            letter-spacing: .3em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .menu-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .menu-btn {
+            min-width: 210px;
+            padding: 15px 24px;
+            font: 700 16px Georgia, serif;
+            letter-spacing: .04em;
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            color: var(--ink);
+            background: linear-gradient(145deg, #263136, #12191c);
+            cursor: pointer;
+            transition: transform .2s, border-color .2s, box-shadow .2s;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-hot);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .3);
+        }
+
+        .menu-btn.primary {
+            color: #1b1408;
+            border-color: #e7b85c;
+            background: linear-gradient(135deg, #f2d18a, #b77b2b);
+        }
+
+        .menu-btn small {
+            display: block;
+            margin-top: 5px;
+            color: var(--muted);
+            font: 11px 'Segoe UI', sans-serif;
+            font-weight: 400;
+        }
+
+        .menu-btn.primary small {
+            color: #5c4218;
+        }
+
+        #modeNotice {
+            min-height: 18px;
+            margin-top: 20px;
+            color: var(--muted);
+            font: 12px 'Segoe UI', sans-serif;
+        }
+
+        #multiplayerLobby {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(7, 12, 14, .96);
+            z-index: 110;
+            pointer-events: auto;
+        }
+
+        #multiplayerLobby.visible {
+            display: flex;
+        }
+
+        #multiplayerLobby h2 {
+            color: var(--accent-hot);
+            letter-spacing: .08em;
+        }
+
+        #lobbyStatus {
+            color: var(--muted);
+            margin: 12px 0 24px;
+            font: 13px 'Segoe UI', sans-serif;
+        }
+
+        .lobby-spinner {
+            width: 42px;
+            height: 42px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(231, 184, 92, .2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ==================== MULTIPLAYER SERVER BROWSER ==================== */
+        #multiplayerBrowser {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            background: radial-gradient(circle at center, #182226, #090d0e 85%);
+            color: var(--ink);
+            z-index: 115;
+            pointer-events: auto;
+            padding: 30px 40px;
+            box-sizing: border-box;
+        }
+
+        #multiplayerBrowser.visible {
+            display: flex;
+        }
+
+        .browser-header {
+            position: relative;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 16px;
+        }
+
+        .browser-header h2 {
+            color: var(--accent-hot);
+            font: 700 28px Georgia, serif;
+            letter-spacing: .08em;
+            margin: 4px 0;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .browser-header p {
+            color: var(--muted);
+            font: 13px 'Segoe UI', sans-serif;
+            margin: 0;
+        }
+
+        .refresh-btn {
+            position: absolute;
+            top: 6px;
+            right: 0;
+            background: linear-gradient(145deg, #263136, #12191c);
+            border: 1px solid var(--line);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font: 600 13px 'Segoe UI', sans-serif;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--accent-hot);
+            color: var(--accent-hot);
+            box-shadow: 0 0 10px rgba(231, 184, 92, 0.25);
+        }
+
+        .refresh-btn.spinning .refresh-icon {
+            animation: spin 0.6s linear infinite;
+        }
+
+        .server-list-container {
+            flex: 1;
+            background: rgba(10, 14, 16, 0.75);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: auto;
+            position: relative;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .server-table {
+            width: 100%;
+            border-collapse: collapse;
+            font: 13px 'Segoe UI', sans-serif;
+            text-align: left;
+        }
+
+        .server-table thead {
+            position: sticky;
+            top: 0;
+            background: #151d21;
+            border-bottom: 2px solid var(--line);
+            z-index: 2;
+        }
+
+        .server-table th {
+            padding: 12px 16px;
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .server-table tbody tr {
+            border-bottom: 1px solid rgba(226, 183, 91, 0.1);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .server-table tbody tr:hover {
+            background: rgba(226, 183, 91, 0.08);
+        }
+
+        .server-table tbody tr.selected {
+            background: linear-gradient(90deg, rgba(231, 184, 92, 0.25), rgba(183, 123, 43, 0.15));
+            border-left: 3px solid var(--accent-hot);
+        }
+
+        .server-table td {
+            padding: 14px 16px;
+            color: var(--ink);
+        }
+
+        .server-room-name {
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-vis {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-vis.public {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .badge-vis.private {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .ping-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .ping-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 6px #22c55e;
+        }
+
+        .ping-dot.medium {
+            background: #eab308;
+            box-shadow: 0 0 6px #eab308;
+        }
+
+        .ping-dot.slow {
+            background: #ef4444;
+            box-shadow: 0 0 6px #ef4444;
+        }
+
+        .no-servers-msg {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px;
+            color: var(--muted);
+        }
+
+        .no-servers-msg.hidden {
+            display: none;
+        }
+
+        .no-servers-msg .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.7;
+        }
+
+        .no-servers-msg p {
+            font: 700 16px Georgia, serif;
+            color: var(--ink);
+            margin: 0 0 6px;
+        }
+
+        .no-servers-msg small {
+            font: 13px 'Segoe UI', sans-serif;
+            color: var(--muted);
+        }
+
+        .browser-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .browser-footer-actions {
+            display: flex;
+            gap: 14px;
+        }
+
+        /* MODAIS DO MULTIPLAYER */
+        .menu-modal {
+            padding: 0;
+        }
+
+        .menu-modal.hidden {
+            display: none;
+        }
+
+        .modal-card,
+        .modal-card.wide,
+        .modal-card.mini {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+            border-radius: 0;
+            border: none;
+            padding: 40px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .faction-slots-grid {
+            max-height: 50vh;
+            /* Permite a lista de facções expandir na tela cheia */
+        }
+
+        .modal-card h3 {
+            color: var(--accent-hot);
+            font: 700 22px Georgia, serif;
+            letter-spacing: .05em;
+            margin: 0 0 16px;
+        }
+
+        .modal-field {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .modal-field.hidden {
+            display: none;
+        }
+
+        .modal-field label {
+            display: block;
+            color: var(--accent);
+            font: 600 12px 'Segoe UI', sans-serif;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .modal-field input[type="text"],
+        .modal-field input[type="password"] {
+            width: 100%;
+            box-sizing: border-box;
+            background: #0d1214;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 10px 14px;
+            color: #fff;
+            font: 14px 'Segoe UI', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .modal-field input:focus {
+            border-color: var(--accent-hot);
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .radio-card {
+            flex: 1;
+            padding: 10px;
+            background: #141b1e;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font: 600 13px 'Segoe UI', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .radio-card input {
+            display: none;
+        }
+
+        .radio-card:hover {
+            border-color: var(--accent);
+        }
+
+        .radio-card.active {
+            background: rgba(226, 183, 91, 0.2);
+            border-color: var(--accent-hot);
+            color: var(--accent-hot);
+        }
+
+        .modal-map-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .modal-map-option {
+            background: #141b1e;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .modal-map-option:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .modal-map-option.selected {
+            background: rgba(226, 183, 91, 0.25);
+            border-color: var(--accent-hot);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+        }
+
+        .modal-map-option strong {
+            display: block;
+            color: var(--accent-hot);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .modal-map-option small {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            line-height: 1.2;
+        }
+
+
+        .bot-count-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .bot-count-btn {
+            flex: 1;
+            padding: 10px;
+            background: #141b1e;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            color: var(--ink);
+            cursor: pointer;
+            font: 700 13px 'Segoe UI', sans-serif;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .bot-count-btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .bot-count-btn.active {
+            background: rgba(226, 183, 91, 0.25);
+            border-color: var(--accent-hot);
+            color: var(--accent-hot);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+        }
+
+        .faction-slots-grid {
+            max-height: 50vh;
+            /* Permite a lista de facções expandir na tela cheia */
+        }
+
+        .faction-slot-card {
+            background: rgba(14, 20, 23, 0.85);
+            border: 1px solid rgba(226, 183, 91, 0.25);
+            border-radius: 6px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .faction-slot-card:hover {
+            border-color: var(--accent);
+        }
+
+        .slot-identity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 140px;
+        }
+
+        .slot-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .slot-name {
+            font: 700 13px 'Segoe UI', sans-serif;
+            color: var(--ink);
+        }
+
+        .slot-role-tag {
+            font: 10px 'Segoe UI', sans-serif;
+            color: var(--muted);
+        }
+
+        .slot-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slot-ctrl-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .slot-ctrl-group label {
+            font: 600 11px 'Segoe UI', sans-serif;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .slot-select {
+            background: #0d1214;
+            border: 1px solid var(--line);
+            color: var(--ink);
+            border-radius: 4px;
+            padding: 5px 8px;
+            font: 600 12px 'Segoe UI', sans-serif;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slot-select:focus {
+            border-color: var(--accent-hot);
+        }
+
+        .modal-actions {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+
+        .waiting-badge {
+            background: rgba(231, 184, 92, 0.15);
+            border: 1px solid var(--accent);
+            color: var(--accent-hot);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font: 700 13px 'Segoe UI', sans-serif;
+            display: inline-block;
+            margin: 16px 0 10px;
+        }
+
+        .waiting-tip {
+            font: 12px 'Segoe UI', sans-serif;
+            color: var(--muted);
+            margin-bottom: 22px;
+        }
+
+        .error-text {
+            color: #ef4444;
+            font: 600 12px 'Segoe UI', sans-serif;
+            margin-top: 8px;
+        }
+
+        .error-text.hidden {
+            display: none;
+        }
+
+        #startBtn {
+            padding: 15px 60px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            border: none;
+            border-radius: 8px;
+            color: #1a0f00;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        #startBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+        }
+
+        #waveNotification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff4444;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 100;
+        }
+
+        #gameOver h1 {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        #gameOver .victory {
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+
+        #gameOver .defeat {
+            color: #ff4444;
+            text-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+        }
+
+        #gameOver button {
+            margin-top: 30px;
+            padding: 15px 60px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            border: none;
+            border-radius: 8px;
+            color: #1a0f00;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Interface de campanha: contraste alto, textura e foco no campo de batalha. */
+        :root {
+            --ink: #f4ead8;
+            --muted: #b6a58b;
+            --panel: rgba(18, 22, 24, 0.92);
+            --line: rgba(226, 183, 91, 0.55);
+            --accent: #e7b85c;
+            --accent-hot: #f2d18a;
+        }
+
+        body {
+            background: #081013;
+            color: var(--ink);
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        #gameContainer::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: .12;
+            background-image: radial-gradient(rgba(255, 255, 255, .35) .5px, transparent .5px);
+            background-size: 5px 5px;
+            mix-blend-mode: overlay;
+        }
+
+        #resourceBar,
+        #unitInfo,
+        #commandPanel {
+            background: linear-gradient(145deg, rgba(23, 29, 31, .96), rgba(10, 14, 16, .93));
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .38), inset 0 1px rgba(255, 255, 255, .08);
+            backdrop-filter: blur(8px);
+        }
+
+        #resourceBar {
+            top: 18px;
+            gap: 28px;
+            padding: 9px 22px;
+        }
+
+        .resource {
+            color: var(--ink);
+            letter-spacing: .04em;
+        }
+
+        .resource-value {
+            color: var(--accent-hot);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .resource-icon {
+            border-radius: 2px;
+        }
+
+        .gold-icon {
+            background: linear-gradient(135deg, #f4cf68, #a97825);
+        }
+
+        .wood-icon {
+            background: linear-gradient(135deg, #a66b3f, #4b2b1e);
+        }
+
+        .food-icon {
+            background: linear-gradient(135deg, #65a75f, #245333);
+        }
+
+        #unitInfo {
+            bottom: 104px;
+            left: 18px;
+            width: 280px;
+            max-width: 440px;
+            padding: 14px;
+            border-radius: 4px;
+            background: linear-gradient(145deg, rgba(23, 29, 31, .98), rgba(10, 14, 16, .95));
+            border: 1px solid var(--line);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px rgba(255, 255, 255, .08);
+            backdrop-filter: blur(10px);
+            color: var(--ink);
+            pointer-events: auto;
+            transition: width 0.2s ease, max-width 0.2s ease;
+            z-index: 15;
+        }
+
+        #unitInfo.multi-selection {
+            width: 380px;
+            max-width: 440px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(226, 183, 91, 0.25);
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--accent-hot);
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+        }
+
+        .panel-header-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .mini-action-btn {
+            background: rgba(38, 49, 54, 0.8);
+            border: 1px solid rgba(226, 183, 91, 0.3);
+            border-radius: 3px;
+            color: var(--ink);
+            font-size: 11px;
+            padding: 3px 7px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .mini-action-btn:hover {
+            background: rgba(231, 184, 92, 0.25);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .subgroup-tabs {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .subgroup-pill {
+            background: rgba(18, 24, 27, 0.9);
+            border: 1px solid rgba(226, 183, 91, 0.25);
+            border-radius: 3px;
+            padding: 3px 8px;
+            font-size: 11px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+
+        .subgroup-pill:hover {
+            border-color: var(--accent);
+            color: var(--ink);
+            background: rgba(38, 49, 54, 0.9);
+        }
+
+        .subgroup-pill.active {
+            background: linear-gradient(135deg, rgba(231, 184, 92, 0.25), rgba(183, 123, 43, 0.35));
+            border-color: var(--accent-hot);
+            color: var(--accent-hot);
+            font-weight: bold;
+            box-shadow: 0 0 8px rgba(231, 184, 92, 0.2);
+        }
+
+        .subgroup-pill .badge {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 0 5px;
+            font-size: 10px;
+            color: var(--accent);
+        }
+
+        .unit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+            gap: 6px;
+            max-height: 195px;
+            overflow-y: auto;
+            padding-right: 3px;
+        }
+
+        .unit-grid::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .unit-grid::-webkit-scrollbar-track {
+            background: rgba(10, 14, 16, 0.6);
+            border-radius: 3px;
+        }
+
+        .unit-grid::-webkit-scrollbar-thumb {
+            background: rgba(226, 183, 91, 0.4);
+            border-radius: 3px;
+        }
+
+        .unit-grid::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        .unit-card {
+            position: relative;
+            background: linear-gradient(145deg, #1d2529, #131a1c);
+            border: 1px solid rgba(226, 183, 91, 0.25);
+            border-radius: 4px;
+            padding: 6px 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            user-select: none;
+        }
+
+        .unit-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-hot);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 10px rgba(231, 184, 92, 0.25);
+            background: linear-gradient(145deg, #283339, #182226);
+        }
+
+        .unit-card.hovered-unit {
+            border-color: #ffd700;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+        }
+
+        .unit-card-portrait {
+            font-size: 20px;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .unit-card-name {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--ink);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 68px;
+            text-align: center;
+        }
+
+        .unit-card-hp-container {
+            width: 100%;
+            height: 4px;
+            background: #090d0e;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .unit-card-hp-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.2s ease, background-color 0.2s ease;
+        }
+
+        .unit-card-status {
+            font-size: 9px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 68px;
+        }
+
+        /* ==================== IN-GAME CHAT CSS ==================== */
+        .ingame-chat-box {
+            position: absolute;
+            left: 20px;
+            bottom: 240px;
+            width: 320px;
+            max-height: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 50;
+            pointer-events: auto;
+            background: rgba(10, 14, 18, 0.75);
+            border: 1px solid rgba(226, 183, 91, 0.4);
+            border-radius: 4px;
+            padding: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            transition: opacity 0.3s ease, border-color 0.3s ease;
+        }
+
+        .ingame-chat-box:not(.active) {
+            background: rgba(10, 14, 18, 0.45);
+            border-color: rgba(226, 183, 91, 0.15);
+        }
+
+        .ingame-chat-log {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 120px;
+            overflow-y: auto;
+            font: 12px/1.3 'Segoe UI', Arial, sans-serif;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+        }
+
+        .ingame-chat-msg {
+            word-wrap: break-word;
+            line-height: 1.25;
+        }
+
+        .ingame-chat-msg .sender {
+            font-weight: bold;
+            margin-right: 4px;
+        }
+
+        .ingame-chat-msg .text {
+            color: #f3f4f6;
+        }
+
+        .ingame-chat-input-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 2px;
+        }
+
+        .ingame-chat-input-row input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(226, 183, 91, 0.5);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font: 12px 'Segoe UI', sans-serif;
+            outline: none;
+        }
+
+        .ingame-chat-input-row input:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .ingame-chat-input-row button {
+            background: linear-gradient(135deg, #e7b85c, #966c28);
+            border: none;
+            color: #000;
+            font: bold 11px 'Segoe UI', sans-serif;
+            padding: 4px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .unit-card-remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(231, 76, 60, 0.4);
+            border-radius: 50%;
+            color: #ff7777;
+            font-size: 9px;
+            line-height: 12px;
+            text-align: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s ease, background 0.15s ease;
+        }
+
+        .unit-card:hover .unit-card-remove {
+            opacity: 1;
+        }
+
+        .unit-card-remove:hover {
+            background: #e74c3c;
+            color: #fff;
+            border-color: #c0392b;
+        }
+
+        /* Single Unit / Building inspector styles */
+        .single-entity-view {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .entity-main-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .entity-icon-large {
+            font-size: 32px;
+            background: rgba(38, 49, 54, 0.6);
+            border: 1px solid rgba(226, 183, 91, 0.3);
+            border-radius: 4px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .entity-header-text h3 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--accent-hot);
+        }
+
+        .entity-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .entity-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 4px;
+            font-size: 11px;
+            background: rgba(10, 14, 16, 0.5);
+            padding: 8px;
+            border-radius: 3px;
+            border: 1px solid rgba(226, 183, 91, 0.15);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            color: var(--muted);
+        }
+
+        .stat-item span:last-child {
+            color: var(--ink);
+            font-weight: bold;
+        }
+
+        .entity-status-box {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--ink);
+            background: rgba(226, 183, 91, 0.1);
+            border-left: 2px solid var(--accent);
+            padding: 6px 8px;
+            border-radius: 0 3px 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .entity-quick-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        #unitInfo h3 {
+            color: var(--accent-hot);
+            letter-spacing: .03em;
+        }
+
+        .bar-container {
+            border-radius: 2px;
+            height: 10px;
+            background: #090d0e;
+        }
+
+        .bar-fill {
+            border-radius: 1px;
+        }
+
+        #commandPanel {
+            bottom: 18px;
+            gap: 7px;
+            padding: 8px;
+        }
+
+        .command-btn {
+            width: 72px;
+            height: 70px;
+            border: 1px solid rgba(226, 183, 91, .38);
+            border-radius: 3px;
+            background: linear-gradient(145deg, #263136, #12191c);
+            color: var(--ink);
+        }
+
+        .command-btn:hover {
+            border-color: var(--accent-hot);
+            box-shadow: 0 0 16px rgba(231, 184, 92, .2);
+        }
+
+        .command-btn.active {
+            border-color: #ffd700;
+            background: linear-gradient(145deg, #3d4a36, #1e281b);
+            box-shadow: 0 0 16px rgba(255, 215, 0, 0.5), inset 0 0 8px rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+        }
+
+        .command-btn .cost {
+            color: var(--muted);
+        }
+
+        #minimap {
+            right: 18px;
+            bottom: 104px;
+            border: 1px solid var(--line);
+            border-radius: 3px;
+        }
+
+        #heroWidget {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, rgba(20, 16, 12, 0.95), rgba(35, 26, 16, 0.9));
+            border: 2px solid #b45309;
+            border-radius: 8px;
+            padding: 8px 12px;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7), 0 0 10px rgba(245, 158, 11, 0.25);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+            z-index: 10;
+        }
+
+        #heroWidget:hover {
+            transform: scale(1.03);
+            border-color: #f59e0b;
+        }
+
+        #heroWidget.hidden {
+            display: none;
+        }
+
+        .hero-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            background: #271a0c;
+            border: 2px solid #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: relative;
+        }
+
+        .hero-lvl-badge {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: #f59e0b;
+            color: #1c1917;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 1px 4px;
+            border-radius: 4px;
+            border: 1px solid #78350f;
+        }
+
+        .hero-details {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 110px;
+        }
+
+        .hero-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #fef08a;
+            letter-spacing: 0.05em;
+        }
+
+        .hero-bar {
+            width: 100%;
+            height: 6px;
+            background: #18181b;
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.5);
+        }
+
+        .hero-bar-hp {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            width: 100%;
+            transition: width 0.2s;
+        }
+
+        .hero-bar-xp {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        .hero-status-text {
+            font-size: 9px;
+            color: #a1a1aa;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #battleBrief {
+            position: absolute;
+            top: 90px;
+            left: 18px;
+            max-width: 300px;
+            padding: 11px 14px;
+            border-left: 2px solid var(--accent);
+            background: rgba(8, 13, 15, .74);
+            color: var(--muted);
+            font: 12px/1.45 'Segoe UI', sans-serif;
+            letter-spacing: .03em;
+            pointer-events: none;
+        }
+
+        #battleBrief strong {
+            display: block;
+            color: var(--accent-hot);
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            font-size: 10px;
+        }
+
+        #toast {
+            position: absolute;
+            top: 82px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            padding: 9px 16px;
+            border: 1px solid var(--line);
+            background: rgba(12, 17, 19, .94);
+            color: var(--ink);
+            opacity: 0;
+            transition: opacity .2s, transform .2s;
+            pointer-events: none;
+            z-index: 20;
+            font: 12px 'Segoe UI', sans-serif;
+        }
+
+        #toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 700px) {
+            #battleBrief {
+                top: 10px;
+                left: 10px;
+                max-width: 190px;
+            }
+
+            #resourceBar {
+                top: 10px;
+                gap: 10px;
+                padding: 7px 10px;
+            }
+
+            .resource {
+                font-size: 12px;
+                gap: 4px;
+            }
+
+            #unitInfo {
+                left: 10px;
+                bottom: 92px;
+                width: 190px;
+                padding: 10px;
+            }
+
+            #minimap {
+                right: 10px;
+                bottom: 92px;
+                width: 130px;
+                height: 130px;
+            }
+
+            #commandPanel {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                transform: none;
+                justify-content: center;
+                overflow-x: auto;
+            }
+
+            .command-btn {
+                min-width: 58px;
+                width: 58px;
+                height: 58px;
+            }
+
+            .command-btn .icon {
+                font-size: 19px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="uiOverlay">
+            <!-- Retrato e Status do Herói no Canto Superior Esquerdo -->
+            <div id="heroWidget" class="hidden" title="Clique para focar a câmera no seu Herói">
+                <div class="hero-avatar">
+                    <span id="heroAvatarIcon">👑</span>
+                    <span class="hero-lvl-badge" id="heroLevelBadge">1</span>
+                </div>
+                <div class="hero-details">
+                    <div class="hero-name" id="heroWidgetName">Paladino</div>
+                    <div class="hero-bar">
+                        <div class="hero-bar-hp" id="heroHpBar"></div>
+                    </div>
+                    <div class="hero-bar">
+                        <div class="hero-bar-xp" id="heroXpBar"></div>
+                    </div>
+                    <div class="hero-status-text">
+                        <span id="heroHpText">450/450 HP</span>
+                        <span id="heroXpText">0/100 XP</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resourceBar">
+                <div class="resource">
+                    <div class="resource-icon gold-icon">🪙</div>
+                    <span class="resource-value" id="goldValue">200</span>
+                </div>
+
+                <div id="toast" role="status" aria-live="polite"></div>
+                <div class="resource">
+                    <div class="resource-icon wood-icon">🪵</div>
+                    <span class="resource-value" id="woodValue">150</span>
+                </div>
+                <div class="resource">
+                    <div class="resource-icon food-icon">🍖</div>
+                    <span class="resource-value" id="foodValue">0/5</span>
+                </div>
+            </div>
+
+            <div id="unitInfo">
+                <h3 id="unitName">Nenhum selecionado</h3>
+                <div id="unitStats"></div>
+            </div>
+
+            <div id="commandPanel"></div>
+
+            <!-- Chat In-Game sobreposto no canto inferior esquerdo (Enter para abrir/enviar) -->
+            <div id="ingameChatBox" class="ingame-chat-box">
+                <div id="ingameChatLog" class="ingame-chat-log"></div>
+                <div class="ingame-chat-input-row">
+                    <input type="text" id="ingameChatInput" placeholder="Pressione Enter para conversar..."
+                        maxlength="100" autocomplete="off" />
+                    <button id="ingameChatSendBtn">Enviar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Minimap fora do overlay para evitar interferência de eventos -->
+        <canvas id="minimap"></canvas>
+
+        <div id="waveNotification"></div>
+
+        <div id="startScreen">
+            <div class="menu-kicker">Estratégia em tempo real</div>
+            <h1>⚔️ KINGDOM WARS</h1>
+            <p>Defenda seu reino contra as hordas orc.</p>
+            <div class="menu-actions">
+                <button id="startBtn" class="menu-btn primary">SINGLE-PLAYER<small>Campanha contra a IA</small></button>
+                <button id="multiplayerBtn" class="menu-btn">MULTIPLAYER<small>Partida local entre duas
+                        abas</small></button>
+            </div>
+            <div id="modeNotice" role="status" aria-live="polite"></div>
+        </div>
+
+        <div id="gameOver">
+            <h1 id="gameOverTitle"></h1>
+            <p id="gameOverText"></p>
+            <button id="menuBtn">VOLTAR AO MENU</button>
+        </div>
+        <div id="multiplayerLobby" aria-live="polite">
+            <div class="lobby-spinner"></div>
+            <h2>BUSCANDO ADVERSÁRIO</h2>
+            <p id="lobbyStatus">Abra outra aba ou janela do jogo para entrar nesta sala.</p>
+            <button id="cancelLobby" class="menu-btn">VOLTAR AO MENU</button>
+        </div>
+
+        <!-- ==================== LOBBY DE SERVIDORES MULTIPLAYER ==================== -->
+        <div id="multiplayerBrowser" aria-label="Servidores Multiplayer">
+            <div class="browser-header">
+                <div class="menu-kicker">Multiplayer Online</div>
+                <h2>⚔️ SERVIDORES ONLINE</h2>
+                <p>Salas ativas na rede local e abas conectadas</p>
+                <button id="refreshServersBtn" class="refresh-btn" title="Atualizar servidores">
+                    <span class="refresh-icon">🔄</span> Atualizar Lista
+                </button>
+            </div>
+
+            <div class="server-list-container">
+                <table class="server-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">Tipo</th>
+                            <th>Nome da Sala</th>
+                            <th>Mapa</th>
+                            <th style="width: 110px;">Jogadores</th>
+                            <th style="width: 100px;">Ping</th>
+                        </tr>
+                    </thead>
+                    <tbody id="serverListBody">
+                        <!-- Preenchido via JavaScript -->
+                    </tbody>
+                </table>
+                <div id="noServersMsg" class="no-servers-msg hidden">
+                    <div class="empty-icon">🏰</div>
+                    <p>Nenhuma sala encontrada no momento.</p>
+                    <small>Clique em <strong>CRIAR SALA</strong> abaixo à direita para abrir uma nova partida!</small>
+                </div>
+            </div>
+
+            <div class="browser-footer">
+                <button id="backToMenuBtn" class="menu-btn secondary">VOLTAR AO MENU</button>
+                <div class="browser-footer-actions">
+                    <button id="createRoomBtn" class="menu-btn primary">CRIAR SALA</button>
+                    <button id="joinRoomBtn" class="menu-btn" disabled>ENTRAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: CRIAR SALA -->
+        <div id="createRoomModal" class="menu-modal hidden">
+            <div class="modal-card">
+                <div class="menu-kicker">Hospedar Partida</div>
+                <h3>CRIAR NOVA SALA</h3>
+
+                <div class="modal-field">
+                    <label for="roomNameInput">Nome da Sala</label>
+                    <input type="text" id="roomNameInput" maxlength="32" placeholder="Ex: Fortaleza Real #1">
+                </div>
+
+                <div class="modal-field">
+                    <label>Visibilidade da Sala</label>
+                    <div class="radio-group">
+                        <label class="radio-card active" id="radioPublicCard">
+                            <input type="radio" name="roomVisibility" value="public" checked>
+                            <span>🌐 Pública</span>
+                        </label>
+                        <label class="radio-card" id="radioPrivateCard">
+                            <input type="radio" name="roomVisibility" value="private">
+                            <span>🔒 Privada</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-field hidden" id="passwordField">
+                    <label for="roomPasswordInput">Senha de Acesso</label>
+                    <input type="password" id="roomPasswordInput" maxlength="20" placeholder="Defina uma senha">
+                </div>
+
+                <div class="modal-field">
+                    <label>Escolha o Mapa</label>
+                    <div class="modal-map-grid">
+                        <div class="modal-map-option selected" data-map="0">
+                            <strong>Campos do Norte</strong>
+                            <small>Floresta & Planície</small>
+                        </div>
+                        <div class="modal-map-option" data-map="1">
+                            <strong>Vale do Leste</strong>
+                            <small>Vales & Bosques</small>
+                        </div>
+                        <div class="modal-map-option" data-map="2">
+                            <strong>Deserto Al'Kharid</strong>
+                            <small>Dunas & Oásis</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="cancelCreateRoomBtn" class="menu-btn secondary">CANCELAR</button>
+                    <button id="confirmCreateRoomBtn" class="menu-btn primary">CRIAR SALA</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: SENHA DE SALA PRIVADA -->
+        <div id="passwordPromptModal" class="menu-modal hidden">
+            <div class="modal-card mini">
+                <h3>🔒 SALA PRIVADA</h3>
+                <p id="passwordPromptRoomName" style="color: var(--muted); margin: 0 0 16px; font-size: 13px;">Digite a
+                    senha para ingressar</p>
+                <div class="modal-field" style="margin-bottom: 8px;">
+                    <input type="password" id="joinPasswordInput" placeholder="Senha da sala">
+                </div>
+                <div id="passwordErrorMsg" class="error-text hidden">Senha incorreta! Tente novamente.</div>
+                <div class="modal-actions" style="justify-content: center; margin-top: 18px;">
+                    <button id="cancelPasswordPromptBtn" class="menu-btn secondary"
+                        style="min-width: 120px;">CANCELAR</button>
+                    <button id="confirmPasswordPromptBtn" class="menu-btn primary"
+                        style="min-width: 120px;">ENTRAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: CONFIGURAÇÃO SINGLE-PLAYER (BOTS & DIFICULDADE) -->
+        <div id="singlePlayerSetupModal" class="menu-modal hidden">
+            <div class="modal-card wide">
+                <div class="menu-kicker">Configuração de Partida</div>
+                <h3>BATALHA CONTRA A IA</h3>
+
+                <div class="modal-field">
+                    <label>Quantidade de Bots Inimigos</label>
+                    <div class="bot-count-selector">
+                        <button type="button" class="bot-count-btn active" data-count="1">1 Bot (1v1)</button>
+                        <button type="button" class="bot-count-btn" data-count="2">2 Bots (3 Reinos)</button>
+                        <button type="button" class="bot-count-btn" data-count="3">3 Bots (4 Reinos)</button>
+                    </div>
+                </div>
+
+                <div class="modal-field">
+                    <label>Participantes da Batalha (Bases nos 4 Cantos)</label>
+                    <div class="faction-slots-grid" id="factionSlotsContainer">
+                        <!-- Gerado via JavaScript -->
+                    </div>
+                </div>
+
+                <div class="modal-field">
+                    <label>Campo de Batalha</label>
+                    <div class="modal-map-grid" id="singlePlayerMapGrid">
+                        <div class="modal-map-option selected" data-map="0">
+                            <strong>Campos do Norte</strong>
+                            <small>Floresta & Planície</small>
+                        </div>
+                        <div class="modal-map-option" data-map="1">
+                            <strong>Vale do Leste</strong>
+                            <small>Vales & Bosques</small>
+                        </div>
+                        <div class="modal-map-option" data-map="2">
+                            <strong>Deserto Al'Kharid</strong>
+                            <small>Dunas & Oásis</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="cancelSinglePlayerSetupBtn" class="menu-btn secondary">VOLTAR</button>
+                    <button id="startSinglePlayerGameBtn" class="menu-btn primary">INICIAR PARTIDA</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: AGUARDANDO JOGADORES NA SALA DO HOST -->
+        <div id="hostWaitingModal" class="menu-modal hidden">
+            <div class="modal-card" style="text-align: center; max-width: 520px;">
+                <div class="lobby-spinner"></div>
+                <h3 id="hostWaitingTitle">SALA CRIADA</h3>
+                <p id="hostWaitingInfo" style="color: var(--accent); margin: 0 0 8px; font-size: 14px;">Mapa: Campos do
+                    Norte | 🌐 Pública</p>
+                <div class="waiting-badge" id="hostWaitingBadge">Aguardando jogadores conectarem... (1/4)</div>
+                <p class="waiting-tip">Até 4 jogadores na mesma partida! Abra outras abas para ingressar.</p>
+
+                <div id="hostPlayersList"
+                    style="background: rgba(10,14,16,0.6); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin-bottom: 16px; text-align: left; font-size: 13px;">
+                    <!-- Lista de jogadores conectados -->
+                </div>
+
+                <div class="modal-actions" style="justify-content: center; gap: 10px;">
+                    <button id="cancelHostWaitingBtn" class="menu-btn secondary" style="min-width: 140px;">CANCELAR
+                        SALA</button>
+                    <button id="startMultiplayerNowBtn" class="menu-btn primary" style="min-width: 170px;"
+                        disabled>INICIAR PARTIDA</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TELA DE SELEÇÃO DE MAPAS ESTILO WARCRAFT 3 ==================== -->
+        <div id="mapSelection" aria-label="Seleção de mapa">
+            <div class="wc3-dialog">
+                <div class="wc3-header">
+                    <h2>SELEÇÃO DE MAPA</h2>
+                    <p>Escolha o campo de batalha para iniciar o confronto</p>
+                    <div class="wc3-scan-status">
+                        <span>Diretório:</span>
+                        <span class="wc3-scan-badge">📁 /maps</span>
+                        <button id="refreshMapsBtn"
+                            style="background: transparent; border: none; color: #ffd700; cursor: pointer; font-size: 14px;"
+                            title="Re-escanear pasta /maps">🔄</button>
+                    </div>
+                </div>
+
+                <div class="wc3-body">
+                    <!-- Coluna Esquerda: Lista de mapas rolável -->
+                    <div class="wc3-map-list-wrapper">
+                        <div class="wc3-list-toolbar">
+                            <span>ARQUIVOS ENCONTRADOS</span>
+                            <span id="wc3MapCountBadge" style="color: #a89070; font-size: 11px;">Carregando...</span>
+                        </div>
+                        <div class="wc3-map-list" id="wc3MapList">
+                            <!-- Gerado dinamicamente via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Coluna Direita: Preview (Minimapa no canto superior direito) e Detalhes -->
+                    <div class="wc3-preview-column">
+                        <div class="wc3-minimap-frame">
+                            <div class="wc3-minimap-label">
+                                <span>🗺️ PRÉ-VISUALIZAÇÃO</span>
+                            </div>
+                            <canvas id="wc3MapPreviewCanvas" width="220" height="220"></canvas>
+                        </div>
+
+                        <div class="wc3-map-details-box">
+                            <div class="wc3-detail-row">
+                                <span class="wc3-detail-label">Nome:</span>
+                                <span class="wc3-detail-val" id="wc3DetailName">---</span>
+                            </div>
+                            <div class="wc3-detail-row">
+                                <span class="wc3-detail-label">Dimensão:</span>
+                                <span class="wc3-detail-val" id="wc3DetailSize">80 x 80</span>
+                            </div>
+                            <div class="wc3-detail-row">
+                                <span class="wc3-detail-label">Ambiente:</span>
+                                <span class="wc3-detail-val" id="wc3DetailTileset">---</span>
+                            </div>
+                            <div class="wc3-detail-row">
+                                <span class="wc3-detail-label">Jogadores:</span>
+                                <span class="wc3-detail-val" id="wc3DetailPlayers">2 - 4</span>
+                            </div>
+                            <div class="wc3-detail-row">
+                                <span class="wc3-detail-label">Arquivo:</span>
+                                <span class="wc3-detail-val" id="wc3DetailFile"
+                                    style="font-family: monospace; color: #ffd700;">---</span>
+                            </div>
+                            <div class="wc3-detail-row"
+                                style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(226, 183, 91, 0.3);">
+                                <span class="wc3-detail-label" style="color: #ffd700; font-weight: bold;">Dificuldade
+                                    IA:</span>
+                                <select id="spAiDifficultySelect" class="wc3-slot-select"
+                                    style="padding: 2px 6px; font-size: 11px;">
+                                    <option value="EASY">Fácil (Iniciante)</option>
+                                    <option value="MEDIUM" selected>Médio (Normal)</option>
+                                    <option value="HARD">Difícil (Insano)</option>
+                                </select>
+                            </div>
+                            <div class="wc3-detail-desc" id="wc3DetailDesc">
+                                Selecione um mapa na lista ao lado para inspecionar o relevo e táticas.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wc3-footer">
+                    <div class="wc3-folder-hint">
+                        <span>💡 Adicione novos arquivos <code>.json</code> em <code>/maps</code> e clique em 🔄</span>
+                    </div>
+                    <div class="wc3-footer-buttons">
+                        <button id="cancelMapSelection" class="menu-btn secondary"
+                            style="min-width: 140px; padding: 10px 18px;">VOLTAR</button>
+                        <button id="confirmSelectMapBtn" class="menu-btn primary"
+                            style="min-width: 180px; padding: 10px 22px;">JOGAR MAPA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TELA 1: CRIAR JOGO MULTIPLAYER (ESTILO WARCRAFT 3) ==================== -->
+        <div id="multiplayerCreateGameScreen" class="wc3-fullscreen-overlay" aria-label="Criar Jogo Multiplayer">
+            <div class="wc3-window-container">
+                <!-- Painel Esquerdo: Opções & Lista de Arquivos de Mapa -->
+                <div class="wc3-main-frame">
+                    <div class="wc3-top-title-bar">
+                        <div>
+                            <h2 class="wc3-title-gold">CRIAR JOGO</h2>
+                            <div class="wc3-subtitle-ice">MULTI-JOGADOR • BATTLE.NET</div>
+                        </div>
+                        <button id="mpRefreshMapsBtn" class="refresh-btn" style="position: static;"
+                            title="Re-escanear mapas">
+                            🔄 Atualizar Pastas
+                        </button>
+                    </div>
+
+                    <div class="wc3-create-grid">
+                        <!-- Coluna de parâmetros do jogo -->
+                        <div class="wc3-options-col">
+                            <div>
+                                <label class="wc3-input-label" for="mpCreateGameNameInput">NOME DO JOGO</label>
+                                <input type="text" id="mpCreateGameNameInput" class="wc3-text-input" maxlength="32"
+                                    placeholder="Partida dos Bravos">
+                                <div class="wc3-input-hint">Dê um nome ao seu lobby. [PÚBLICO]</div>
+                            </div>
+
+                            <div style="margin-top: 6px;">
+                                <label class="wc3-input-label">VELOCIDADE DO JOGO</label>
+                                <div
+                                    style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                                    <span>LENTO</span>
+                                    <span>NORMAL</span>
+                                    <span style="color: #60a5fa; font-weight: bold;">RÁPIDO</span>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 6px;">
+                                <label class="wc3-input-label">OPÇÕES AVANÇADAS</label>
+                                <div
+                                    style="display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: #cbd5e1;">
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                        <input type="checkbox" checked disabled>
+                                        <span>Fixar Equipes</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                        <input type="checkbox" checked disabled>
+                                        <span>Formar Equipe</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                        <input type="checkbox" disabled>
+                                        <span>Controle Compartilhado</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                        <input type="checkbox" disabled>
+                                        <span>Raças Aleatórias</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna central com lista de arquivos de /maps -->
+                        <div class="wc3-files-col">
+                            <div class="wc3-files-toolbar">
+                                <span>DIRETÓRIO: /maps</span>
+                                <span id="mpCreateMapCount"
+                                    style="font-size: 11px; color: #94a3b8; font-weight: normal;">0 mapas</span>
+                            </div>
+                            <div class="wc3-files-list" id="mpCreateMapList">
+                                <!-- Preenchido dinamicamente via lobbyController -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rodapé inferior com botão Voltar -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; border-top: 2px solid #283440; padding-top: 12px;">
+                        <button id="mpCancelCreateGameBtn" class="wc3-action-btn"
+                            style="min-width: 140px;">VOLTAR</button>
+                    </div>
+                </div>
+
+                <!-- Painel Direito Suspenso: Minimapa e Botão CRIAR [C] -->
+                <div class="wc3-side-frame">
+                    <div class="wc3-side-preview-box">
+                        <div
+                            style="color: #ffd700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; font-weight: bold;">
+                            MINIMAPA
+                        </div>
+                        <canvas id="mpCreateMapPreviewCanvas" class="wc3-side-preview-canvas" width="200"
+                            height="200"></canvas>
+                    </div>
+
+                    <div class="wc3-side-info-card">
+                        <div class="wc3-side-info-title" id="mpCreateRightMapTitle">---</div>
+                        <div class="wc3-side-info-author" id="mpCreateRightAuthor">Criado por: ---</div>
+
+                        <div
+                            style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                            <span style="color: #ffd700; font-weight: bold;">JOGADORES:</span>
+                            <span id="mpCreateRightPlayers" style="color: #fff;">2 - 4</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                            <span style="color: #ffd700; font-weight: bold;">TAMANHO:</span>
+                            <span id="mpCreateRightSize" style="color: #fff;">80 x 80</span>
+                        </div>
+
+                        <div class="wc3-side-desc" id="mpCreateRightDesc">
+                            Selecione um mapa na lista para visualizar o terreno e detalhes.
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px; display: flex; flex-direction: column;">
+                        <button id="mpConfirmCreateGameBtn" class="wc3-action-btn primary"
+                            style="width: 100%; padding: 14px 10px; font-size: 15px;">
+                            CRIAR [C]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TELA 2: SALA DE ESPERA / GAME LOBBY (ESTILO WARCRAFT 3) ==================== -->
+        <div id="multiplayerLobbyRoomScreen" class="wc3-fullscreen-overlay" aria-label="Sala de Espera Multiplayer">
+            <div class="wc3-window-container">
+                <!-- Painel Esquerdo: Cabeçalho, Tabela de Slots e Chat Inferior -->
+                <div class="wc3-main-frame">
+                    <!-- Cabeçalho com Nome da Partida, Host e Contagem -->
+                    <div class="wc3-lobby-header-bar">
+                        <div class="wc3-lobby-header-item" id="lobbyRoomGameTitle">NOME DO JOGO: Partida dos Bravos
+                        </div>
+                        <div class="wc3-lobby-header-item" id="lobbyRoomHostName">HOST: Jogador</div>
+                        <div class="wc3-lobby-header-item" id="lobbyRoomPlayersBadge" style="text-align: right;">
+                            JOGADORES: 1/2</div>
+                    </div>
+
+                    <!-- Tabela Central de Slots de Jogadores -->
+                    <div
+                        style="display: grid; grid-template-columns: 40px 2fr 1.2fr 1.4fr 1.2fr; gap: 8px; padding: 6px 12px; font-size: 11px; color: #ffd700; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #334155;">
+                        <div>#</div>
+                        <div>Jogador / Status</div>
+                        <div>Raça</div>
+                        <div>Cor da Facção</div>
+                        <div>Equipe</div>
+                    </div>
+
+                    <div class="wc3-slots-container" id="lobbySlotsTableBody">
+                        <!-- Gerado dinamicamente via lobbyController.renderLobbyUI() -->
+                    </div>
+
+                    <!-- Seção de Bate-papo inferior -->
+                    <div class="wc3-chat-section">
+                        <div class="wc3-chat-log" id="lobbyChatMessages">
+                            <!-- Linhas de mensagem via JavaScript -->
+                        </div>
+                        <div class="wc3-chat-input-bar">
+                            <span
+                                style="color: #f59e0b; font-size: 12px; font-weight: bold; line-height: 28px;">SAY:</span>
+                            <input type="text" id="lobbyChatInput" class="wc3-chat-input"
+                                placeholder="Digite sua mensagem e pressione Enter..." maxlength="120">
+                            <button id="lobbySendChatBtn" class="wc3-action-btn"
+                                style="padding: 4px 14px; font-size: 12px;">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel Direito Suspenso: Minimapa Estático e Botão Iniciar Jogo -->
+                <div class="wc3-side-frame">
+                    <div class="wc3-side-preview-box">
+                        <div
+                            style="color: #ffd700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; font-weight: bold;">
+                            MAPA DA PARTIDA
+                        </div>
+                        <canvas id="lobbyRoomMapPreviewCanvas" class="wc3-side-preview-canvas" width="200"
+                            height="200"></canvas>
+                    </div>
+
+                    <div class="wc3-side-info-card">
+                        <div class="wc3-side-info-title" id="lobbyRoomRightMapTitle">---</div>
+                        <div class="wc3-side-info-author" id="lobbyRoomRightAuthor">Criado por: ---</div>
+
+                        <div
+                            style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                            <span style="color: #ffd700; font-weight: bold;">VELOCIDADE:</span>
+                            <span style="color: #60a5fa;">Rápido</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                            <span style="color: #ffd700; font-weight: bold;">OBSERVADORES:</span>
+                            <span style="color: #94a3b8;">Nenhum</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                            <span style="color: #ffd700; font-weight: bold;">VISIBILIDADE:</span>
+                            <span style="color: #94a3b8;">Padrão</span>
+                        </div>
+
+                        <div class="wc3-side-desc" id="lobbyRoomRightDesc">
+                            Aguardando anfitrião dar início à batalha.
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <button id="lobbyStartMatchBtn" class="wc3-action-btn primary"
+                            style="width: 100%; padding: 14px 10px; font-size: 15px;">
+                            COMEÇAR JOGO
+                        </button>
+                        <button id="lobbyLeaveRoomBtn" class="wc3-action-btn"
+                            style="width: 100%; padding: 8px 10px; font-size: 12px;">
+                            SAIR / CANCELAR SALA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="game.js"></script>
+</body>
+
+</html>

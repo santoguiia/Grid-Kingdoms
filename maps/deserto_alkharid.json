@@ -1,0 +1,23 @@
+{
+  "id": "deserto_alkharid",
+  "name": "Deserto de Al'Kharid",
+  "mapIndex": 2,
+  "tileset": "deserto",
+  "tilesetName": "Dunas & Oásis",
+  "players": "2 - 4 Jogadores",
+  "suggestedPlayers": 2,
+  "size": "80 x 80 (Médio)",
+  "width": 80,
+  "height": 80,
+  "author": "Reino dos Bravos",
+  "description": "Clima árido e inóspito com dunas de areia estéreis, cactos espinhosos e oásis aquáticos disputados. O ouro é abundante mas escasso em madeira.",
+  "preview": null,
+  "palette": {
+    "grass": "#dca052",
+    "tree": "#5d7d40",
+    "water": "#1db4db",
+    "mountain": "#c87d32",
+    "gold": "#ffd700",
+    "path": "#c29153"
+  }
+}

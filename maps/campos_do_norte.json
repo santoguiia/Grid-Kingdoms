@@ -1,0 +1,23 @@
+{
+  "id": "campos_do_norte",
+  "name": "Campos do Norte",
+  "mapIndex": 0,
+  "tileset": "floresta",
+  "tilesetName": "Floresta & Planície",
+  "players": "2 - 4 Jogadores",
+  "suggestedPlayers": 2,
+  "size": "80 x 80 (Médio)",
+  "width": 80,
+  "height": 80,
+  "author": "Reino dos Bravos",
+  "description": "Confronto diagonal clássico entre planícies verdes e florestas densas. Ricas minas de ouro locais e um ponto de disputa crucial no centro do vale.",
+  "preview": null,
+  "palette": {
+    "grass": "#4a7c3f",
+    "tree": "#2d5a1e",
+    "water": "#2a5f8f",
+    "mountain": "#6b6b6b",
+    "gold": "#ffd700",
+    "path": "#8b7355"
+  }
+}

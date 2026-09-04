@@ -1,0 +1,23 @@
+{
+  "id": "pantano_sombrio",
+  "name": "Pântano Sombrio",
+  "mapIndex": 1,
+  "tileset": "pantano",
+  "tilesetName": "Pântano Negro",
+  "players": "2 - 4 Jogadores",
+  "suggestedPlayers": 4,
+  "size": "80 x 80 (Médio)",
+  "width": 80,
+  "height": 80,
+  "author": "Guilherme dos Santos",
+  "description": "Uma terra alagadiça cheia de névoa e águas profundas. Os caminhos de terra firme são estreitos, forçando batalhas sangrentas pelas pontes.",
+  "preview": null,
+  "palette": {
+    "grass": "#2c402e",
+    "tree": "#1b2c1e",
+    "water": "#183236",
+    "mountain": "#3f463e",
+    "gold": "#ffd700",
+    "path": "#524b3b"
+  }
+}
