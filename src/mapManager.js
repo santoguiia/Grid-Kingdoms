@@ -13,7 +13,9 @@ export class MapManager {
     async scanMaps() {
         this.loading = true;
         try {
-            const manifestRes = await fetch('./maps/index.json?t=' + Date.now(), { cache: 'no-store' });
+            const manifestUrl = new URL('../maps/index.json', import.meta.url);
+            manifestUrl.searchParams.set('t', Date.now().toString());
+            const manifestRes = await fetch(manifestUrl, { cache: 'no-store' });
             if (!manifestRes.ok) throw new Error(`Manifest HTTP ${manifestRes.status}`);
 
             const manifest = await manifestRes.json();
@@ -24,7 +26,9 @@ export class MapManager {
             for (const fileName of files) {
                 if (typeof fileName !== 'string' || !fileName.toLowerCase().endsWith('.json')) continue;
                 try {
-                    const fileRes = await fetch(`./maps/${fileName}?t=${Date.now()}`, { cache: 'no-store' });
+                    const fileUrl = new URL(`../maps/${fileName}`, import.meta.url);
+                    fileUrl.searchParams.set('t', Date.now().toString());
+                    const fileRes = await fetch(fileUrl, { cache: 'no-store' });
                     if (!fileRes.ok) throw new Error(`HTTP ${fileRes.status}`);
                     const mapData = await fileRes.json();
                     mapData.fileName = fileName;
