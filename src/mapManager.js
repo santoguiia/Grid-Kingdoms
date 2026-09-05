@@ -13,16 +13,39 @@ export class MapManager {
     async scanMaps() {
         this.loading = true;
         try {
-            const res = await fetch('/api/maps?t=' + Date.now(), { cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (data.success && Array.isArray(data.maps) && data.maps.length > 0) {
-                this.maps = data.maps;
-            } else {
-                this.maps = [...FALLBACK_MAPS];
+            const manifestRes = await fetch('./maps/index.json?t=' + Date.now(), { cache: 'no-store' });
+            if (!manifestRes.ok) throw new Error(`Manifest HTTP ${manifestRes.status}`);
+
+            const manifest = await manifestRes.json();
+            const files = Array.isArray(manifest?.files) ? manifest.files : null;
+            if (!files) throw new Error('Manifesto inválido: esperado { files: [] }');
+
+            const loadedMaps = [];
+            for (const fileName of files) {
+                if (typeof fileName !== 'string' || !fileName.toLowerCase().endsWith('.json')) continue;
+                try {
+                    const fileRes = await fetch(`./maps/${fileName}?t=${Date.now()}`, { cache: 'no-store' });
+                    if (!fileRes.ok) throw new Error(`HTTP ${fileRes.status}`);
+                    const mapData = await fileRes.json();
+                    mapData.fileName = fileName;
+                    if (!mapData.id) mapData.id = fileName.replace(/\.json$/i, '');
+                    loadedMaps.push(mapData);
+                } catch (error) {
+                    loadedMaps.push({
+                        id: fileName.replace(/\.json$/i, ''),
+                        name: fileName,
+                        fileName,
+                        corrupted: true,
+                        error: error.message
+                    });
+                    console.warn(`[MapManager] Falha ao carregar mapa "${fileName}":`, error.message);
+                }
             }
+
+            const validMaps = loadedMaps.filter(m => !m.corrupted);
+            this.maps = validMaps.length > 0 ? loadedMaps : [...FALLBACK_MAPS];
         } catch (err) {
-            console.warn('[MapManager] Não foi possível consultar /api/maps (usando mapas integrados de fallback):', err.message);
+            console.warn('[MapManager] Não foi possível carregar ./maps/index.json (usando mapas integrados de fallback):', err.message);
             this.maps = [...FALLBACK_MAPS];
         } finally {
             this.loading = false;
