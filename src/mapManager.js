@@ -7,7 +7,7 @@ export class MapManager {
     }
 
     /**
-     * Escaneia a pasta /maps dinamicamente em tempo de execução via API REST
+     * Carrega mapas da pasta /maps via manifesto estático em ./maps/index.json
      * Retorna a lista de mapas atualizada
      */
     async scanMaps() {
