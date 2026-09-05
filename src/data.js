@@ -6,7 +6,7 @@ const UNIT_DEFS = {
     PEASANT: {
         name: 'Camponês',
         health: 60,
-        speed: 1.6,
+        speed: 4.0,
         attack: 3,
         attackRange: 35,
         attackCooldown: 80,
@@ -23,7 +23,7 @@ const UNIT_DEFS = {
     SOLDIER: {
         name: 'Soldado',
         health: 150,
-        speed: 1.6,
+        speed: 4.8,
         attack: 16,
         attackRange: 30,
         attackCooldown: 65,
@@ -38,7 +38,7 @@ const UNIT_DEFS = {
     ARCHER: {
         name: 'Arqueiro',
         health: 80,
-        speed: 1.4,
+        speed: 4.4,
         attack: 12,
         attackRange: 105,
         attackCooldown: 90,
@@ -53,7 +53,7 @@ const UNIT_DEFS = {
     ORC_WARRIOR: {
         name: 'Guerreiro Orc',
         health: 190,
-        speed: 1.5,
+        speed: 4.7,
         attack: 20,
         attackRange: 35,
         attackCooldown: 70,
@@ -68,7 +68,7 @@ const UNIT_DEFS = {
     ORC_SHAMAN: {
         name: 'Xamã Orc',
         health: 95,
-        speed: 1.4,
+        speed: 4.4,
         attack: 18,
         attackRange: 95,
         attackCooldown: 75,
@@ -84,7 +84,7 @@ const UNIT_DEFS = {
     HERO_PALADIN: {
         name: 'Paladino (Herói)',
         health: 450,
-        speed: 1.5,
+        speed: 4.5,
         attack: 28,
         attackRange: 40,
         attackCooldown: 60,
@@ -101,7 +101,7 @@ const UNIT_DEFS = {
     CREEP_WOLF: {
         name: 'Lobo Selvagem',
         health: 75,
-        speed: 1.5,
+        speed: 4.5,
         attack: 8,
         attackRange: 25,
         attackCooldown: 65,
@@ -115,7 +115,7 @@ const UNIT_DEFS = {
     CREEP_OGRE: {
         name: 'Ogro Guerreiro',
         health: 175,
-        speed: 1.2,
+        speed: 3.5,
         attack: 16,
         attackRange: 30,
         attackCooldown: 75,
@@ -129,7 +129,7 @@ const UNIT_DEFS = {
     CREEP_GOLEM: {
         name: 'Golem de Pedra (Chefe)',
         health: 350,
-        speed: 1.0,
+        speed: 3.0,
         attack: 26,
         attackRange: 35,
         attackCooldown: 85,
@@ -313,8 +313,43 @@ const ALL_EXPANSION_HUBS = [
     }
 ];
 
-function generateMap(mapIndex = 0, seed = Math.random()) {
+function generateMap(mapIndex = 0, seed = Math.random(), customMapData = null) {
     gameState.map = [];
+
+    // Se um mapa customizado do editor foi fornecido
+    if (customMapData && Array.isArray(customMapData.grid)) {
+        gameState.map = customMapData.grid.map(row => [...row]);
+        const mapH = gameState.map.length;
+        const mapW = gameState.map[0]?.length || 80;
+
+        // Extrai spawns customizados definidos no editor
+        const customSpawns = customMapData.spawns || [];
+        const p1Spawn = customSpawns.find(s => s.faction === 'player' || s.id === 'player') || { x: 14, y: 14, name: 'P1' };
+        const enemySpawn = customSpawns.find(s => (s.faction !== 'player' && s.id !== 'expansion')) || { x: mapW - 15, y: mapH - 15, name: 'Bot1' };
+
+        const cornerSpawns = customSpawns.map((s, idx) => ({
+            x: s.x,
+            y: s.y,
+            name: s.name || `Spawn_${idx + 1}`,
+            faction: s.faction || s.id
+        }));
+
+        const spawnInfo = {
+            player: { x: p1Spawn.x, y: p1Spawn.y, name: p1Spawn.name || 'Jogador 1' },
+            enemy: { x: enemySpawn.x, y: enemySpawn.y, name: enemySpawn.name || 'Inimigo 1' },
+            corners: cornerSpawns.length > 0 ? cornerSpawns : [
+                { x: 14, y: 14, name: 'NW' },
+                { x: mapW - 15, y: mapH - 15, name: 'SE' }
+            ],
+            pairIndex: 0,
+            isCustom: true
+        };
+
+        gameState.customCreeps = customMapData.creeps || null;
+        gameState.spawnInfo = spawnInfo;
+        return spawnInfo;
+    }
+
     let randomSeed = Math.floor(seed * 2147483647) || 1;
     const random = () => {
         randomSeed = (randomSeed * 48271) % 2147483647;

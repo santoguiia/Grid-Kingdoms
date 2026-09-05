@@ -70,7 +70,7 @@ export const CONFIG = {
     AGE_3_COST_WOOD: 320,         // Custo em madeira para Era 3
 
     // ==================== IA & DIFICULDADE ====================
-    AI_UPDATE_INTERVAL: 160,      // Intervalo de ticks entre atualizações da IA
+    AI_UPDATE_INTERVAL: 60,       // Intervalo de ticks entre atualizações da IA (~1 segundo para ações ágeis)
     BOT_DIFFICULTY: {
         EASY: {
             name: 'Fácil',

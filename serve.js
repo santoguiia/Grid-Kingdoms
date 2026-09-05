@@ -16,6 +16,52 @@ const MIME_TYPES = {
 const server = http.createServer((req, res) => {
     let safeUrl = req.url.split('?')[0];
 
+    // Endpoint para salvar mapa criado no World Editor
+    if (safeUrl === '/api/maps/save' && req.method === 'POST') {
+        const mapsDir = path.join(__dirname, 'maps');
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk;
+            // Limitar tamanho de payload a 10MB
+            if (body.length > 10 * 1024 * 1024) {
+                req.connection.destroy();
+            }
+        });
+        req.on('end', () => {
+            try {
+                const parsed = JSON.parse(body);
+                const mapData = parsed.mapData || parsed;
+                let rawName = (parsed.fileName || mapData.id || mapData.name || 'mapa_custom').toString();
+                if (rawName.toLowerCase().endsWith('.json')) {
+                    rawName = rawName.slice(0, -5);
+                }
+                // Sanitização estrita do nome de arquivo (evita Directory Traversal)
+                let safeFileName = rawName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase() + '.json';
+
+                if (!fs.existsSync(mapsDir)) {
+                    fs.mkdirSync(mapsDir, { recursive: true });
+                }
+
+                const targetPath = path.join(mapsDir, safeFileName);
+                mapData.fileName = safeFileName;
+                mapData.updatedAt = Date.now();
+
+                fs.writeFileSync(targetPath, JSON.stringify(mapData, null, 2), 'utf8');
+
+                res.writeHead(200, {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Cache-Control': 'no-cache'
+                });
+                res.end(JSON.stringify({ success: true, fileName: safeFileName, map: mapData }));
+            } catch (err) {
+                console.error('[Maps] Erro ao salvar mapa:', err);
+                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
+        return;
+    }
+
     // Endpoint de API para listagem dinâmica de mapas na pasta /maps
     if (safeUrl === '/api/maps') {
         const mapsDir = path.join(__dirname, 'maps');

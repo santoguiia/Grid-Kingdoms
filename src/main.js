@@ -6,6 +6,7 @@ import { setupInput, updateCamera } from './input.js';
 import { showToast, setupInGameChat } from './ui.js';
 import { mapManager } from './mapManager.js';
 import { lobbyController } from './lobby.js';
+import { mapEditor } from './mapEditor.js';
 import { networkTick } from './network.js'; // <-- CORRIGIDO: importação explícita
 
 window.gameState = gameState;
@@ -787,6 +788,17 @@ document.getElementById('startBtn').addEventListener('click', () => {
     openMapSelection('single-player');
 });
 
+// World Editor: Abrir Editor de Mapas
+document.getElementById('editorBtn')?.addEventListener('click', () => {
+    mapEditor.open();
+});
+
+// Função para iniciar partida imediata com o mapa desenhado no editor
+window.startMatchWithCustomMap = (customMap) => {
+    showToast(`⚔️ Iniciando partida no mapa customizado: ${customMap.name}!`);
+    startMatch('single-player', 0, Math.random(), 'player', { mapData: customMap });
+};
+
 function openMapSelection(mode) {
     document.getElementById('startScreen').style.display = 'none';
     const screen = document.getElementById('mapSelection');
@@ -850,6 +862,25 @@ document.getElementById('lobbyLeaveRoomBtn')?.addEventListener('click', () => {
     showToast('Você saiu da sala.');
 });
 
+// Botão para baixar o arquivo JSON do mapa na sala de espera
+document.getElementById('lobbyDownloadMapBtn')?.addEventListener('click', () => {
+    const lobby = gameState.multiplayerLobby;
+    if (!lobby || !lobby.mapData) {
+        showToast('Nenhum mapa selecionado para download.');
+        return;
+    }
+    const json = JSON.stringify(lobby.mapData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = (lobby.mapData.name || 'mapa').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    a.download = `${safeName}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`📥 Mapa "${lobby.mapData.name}" baixado com sucesso!`);
+});
+
 // Bate-papo do Lobby
 const chatInput = document.getElementById('lobbyChatInput');
 const sendChatBtn = document.getElementById('lobbySendChatBtn');
@@ -881,6 +912,7 @@ document.getElementById('lobbyStartMatchBtn')?.addEventListener('click', () => {
     const mapIndex = typeof lobby.mapData.mapIndex === 'number' ? lobby.mapData.mapIndex : 0;
     const mapSeed = Math.random();
     const lobbySlots = lobby.slots ? JSON.parse(JSON.stringify(lobby.slots)) : null;
+    const mapData = lobby.mapData ? JSON.parse(JSON.stringify(lobby.mapData)) : null;
 
     // Notificar outros jogadores conectados via canal local
     if (lobbyController.broadcastChannel) {
@@ -889,6 +921,7 @@ document.getElementById('lobbyStartMatchBtn')?.addEventListener('click', () => {
             roomName: lobby.gameName,
             mapIndex,
             mapSeed,
+            mapData,
             slots: lobbySlots
         });
     }
@@ -896,7 +929,7 @@ document.getElementById('lobbyStartMatchBtn')?.addEventListener('click', () => {
     lobbyController.stopHeartbeat();
     lobbyController.switchScreen('GAME');
     showToast(`⚔️ Partida iniciada no mapa ${lobby.mapData.name}!`);
-    startMatch('multiplayer', mapIndex, mapSeed, 'player', { slots: lobbySlots });
+    startMatch('multiplayer', mapIndex, mapSeed, 'player', { slots: lobbySlots, mapData });
 });
 
 // Ouvir início autorizado por outro jogador caso ingresse como cliente
@@ -906,8 +939,9 @@ if (lobbyController.broadcastChannel) {
         if (!data) return;
         if (data.type === 'lobby_match_start' && gameState.currentMenuScreen === 'LOBBY_ROOM') {
             lobbyController.switchScreen('GAME');
+            const incomingMap = data.mapData || gameState.multiplayerLobby?.mapData;
             showToast(`⚔️ Partida iniciada pelo anfitrião em ${data.roomName}!`);
-            startMatch('multiplayer', data.mapIndex, data.mapSeed, 'enemy', { slots: data.slots });
+            startMatch('multiplayer', data.mapIndex, data.mapSeed, 'enemy', { slots: data.slots, mapData: incomingMap });
         }
     });
 }

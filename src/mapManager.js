@@ -89,6 +89,43 @@ export class MapManager {
         ctx.fillStyle = palette.grass;
         ctx.fillRect(0, 0, width, height);
 
+        // Se o mapa possui matriz explícita desenhada no editor
+        if (Array.isArray(mapData.grid) && mapData.grid.length > 0) {
+            const colorMap = {
+                0: palette.grass,
+                1: palette.tree,
+                2: palette.water,
+                3: palette.mountain,
+                4: palette.gold,
+                5: palette.path || '#8b7355'
+            };
+            for (let y = 0; y < mapH; y++) {
+                const row = mapData.grid[y];
+                if (!row) continue;
+                for (let x = 0; x < mapW; x++) {
+                    const t = row[x];
+                    if (t !== 0 && colorMap[t]) {
+                        ctx.fillStyle = colorMap[t];
+                        ctx.fillRect(x * tilePixelW, y * tilePixelH, tilePixelW + 0.6, tilePixelH + 0.6);
+                    }
+                }
+            }
+
+            // Desenhar pontos de spawn no minimapa
+            if (Array.isArray(mapData.spawns)) {
+                for (const s of mapData.spawns) {
+                    ctx.fillStyle = (s.faction === 'player' || s.id === 'player') ? '#3b82f6' : '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(s.x * tilePixelW, s.y * tilePixelH, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+            return;
+        }
+
         // Desenho dos relevos simulados com ruído correspondente ao gerador
         for (let y = 0; y < mapH; y++) {
             for (let x = 0; x < mapW; x++) {

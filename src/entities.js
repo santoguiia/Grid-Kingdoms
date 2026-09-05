@@ -617,7 +617,10 @@ class Unit {
         this.goldReward = type.goldReward || 0;
         this.homeX = x;
         this.homeY = y;
-        this.aggroRange = this.isNeutral ? 110 : (this.attackRange || 25);
+        this.aggroRange = this.isNeutral ? 130 : (this.attackRange || 25);
+        this.chaseTimer = 0;
+        this.maxChaseDuration = 240; // ~4 segundos (60 ticks/s) perseguindo antes de desengajar
+        this.returningHome = false;
         this.heroHealTimer = 0;
 
         
@@ -990,6 +993,63 @@ class Unit {
             }
         }
         
+        // Comportamento de IA e perseguição para Creeps Neutros
+        if (this.isNeutral) {
+            const distFromHome = Math.hypot(this.x - this.homeX, this.y - this.homeY);
+
+            // Se estiver retornando para casa
+            if (this.returningHome) {
+                this.attackTarget = null;
+                this.targetX = this.homeX;
+                this.targetY = this.homeY;
+                if (distFromHome <= 12) {
+                    this.returningHome = false;
+                    this.chaseTimer = 0;
+                    this.targetX = null;
+                    this.targetY = null;
+                }
+            } else {
+                // Verificar ou encontrar alvo
+                if (!this.attackTarget || this.attackTarget.health <= 0) {
+                    this.attackTarget = this.findNearestEnemy();
+                }
+
+                if (this.attackTarget) {
+                    const distToTarget = this.getDistanceTo(this.attackTarget);
+                    const distTargetFromHome = Math.hypot(this.attackTarget.x - this.homeX, this.attackTarget.y - this.homeY);
+
+                    // Desengajar se:
+                    // 1) Perseguiu por mais tempo que maxChaseDuration (~4s)
+                    // 2) Alvo se afastou muito do território de spawn (> 200px)
+                    // 3) Alvo está muito longe do próprio mob (> 220px)
+                    this.chaseTimer = (this.chaseTimer || 0) + 1;
+                    if (this.chaseTimer > this.maxChaseDuration || distFromHome > 200 || distTargetFromHome > 220 || distToTarget > 220) {
+                        this.attackTarget = null;
+                        this.returningHome = true;
+                        this.targetX = this.homeX;
+                        this.targetY = this.homeY;
+                    } else {
+                        // Perseguir o alvo para atacá-lo se não estiver em alcance de ataque
+                        if (distToTarget > this.attackRange * 0.8) {
+                            this.targetX = this.attackTarget.x;
+                            this.targetY = this.attackTarget.y;
+                        } else {
+                            // Dentro do alcance de ataque, para para golpear
+                            this.targetX = null;
+                            this.targetY = null;
+                        }
+                    }
+                } else {
+                    // Sem alvo e longe de casa: voltar gradualmente para home
+                    this.chaseTimer = 0;
+                    if (distFromHome > 15 && this.targetX === null) {
+                        this.targetX = this.homeX;
+                        this.targetY = this.homeY;
+                    }
+                }
+            }
+        }
+
         // Ataque automático
         if (this.canAttack && this.cooldown <= 0) {
             const target = this.attackTarget?.health > 0 ? this.attackTarget : this.findNearestEnemy();
@@ -1129,21 +1189,20 @@ class Unit {
         
         let enemies = [];
         if (this.isNeutral) {
-            // Creeps atacam apenas quem estiver perto do seu território
+            if (this.returningHome) return null;
+            // Creeps entram em aggro apenas quando o inimigo se aproxima de home ou do creep
             const distFromHome = Math.hypot(this.x - this.homeX, this.y - this.homeY);
-            if (distFromHome > 160) {
-                // Muito longe de casa, retorna
-                this.attackTarget = null;
-                this.targetX = this.homeX;
-                this.targetY = this.homeY;
+            if (distFromHome > 200) {
                 return null;
             }
             enemies = gameState.units.filter(u => u.owner !== 'neutral' && u.health > 0);
             for (const enemy of enemies) {
-                const dist = this.getDistanceTo(enemy);
-                if (dist <= this.aggroRange && dist < closestDist) {
+                const distToMob = this.getDistanceTo(enemy);
+                const enemyDistFromHome = Math.hypot(enemy.x - this.homeX, enemy.y - this.homeY);
+                // Aggro dispara se inimigo estiver dentro do raio de aggro do mob ou do acampamento
+                if ((distToMob <= this.aggroRange || enemyDistFromHome <= this.aggroRange) && distToMob < closestDist) {
                     closest = enemy;
-                    closestDist = dist;
+                    closestDist = distToMob;
                 }
             }
             return closest;

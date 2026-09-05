@@ -2501,6 +2501,290 @@
                 font-size: 19px;
             }
         }
+
+        /* ==================== WORLD EDITOR CSS ==================== */
+        #mapEditorModal {
+            position: fixed;
+            inset: 0;
+            background: #0d1217;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            color: #f1f5f9;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            user-select: none;
+        }
+
+        #mapEditorModal.visible {
+            display: flex;
+        }
+
+        .editor-topbar {
+            height: 52px;
+            background: linear-gradient(180deg, #1e293b, #0f172a);
+            border-bottom: 2px solid #b45309;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .editor-title-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .editor-title-text {
+            color: #ffd700;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .editor-meta-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .editor-input {
+            background: #090d13;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .editor-input:focus {
+            border-color: #ffd700;
+        }
+
+        .editor-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .editor-btn {
+            background: linear-gradient(180deg, #334155, #1e293b);
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .editor-btn:hover {
+            border-color: #ffd700;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .editor-btn.primary {
+            background: linear-gradient(180deg, #d97706, #b45309);
+            border-color: #f59e0b;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .editor-btn.primary:hover {
+            background: linear-gradient(180deg, #f59e0b, #d97706);
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+        }
+
+        .editor-btn.danger {
+            background: linear-gradient(180deg, #991b1b, #7f1d1d);
+            border-color: #ef4444;
+        }
+
+        .editor-body {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            position: relative;
+        }
+
+        /* Barra Lateral de Ferramentas / Paletas */
+        .editor-sidebar {
+            width: 260px;
+            background: #111827;
+            border-right: 1px solid #374151;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 14px;
+            overflow-y: auto;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+            z-index: 5;
+        }
+
+        .editor-section-title {
+            color: #ffd700;
+            font-size: 11.5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .editor-tools-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .editor-tool-btn {
+            flex: 1;
+            background: #1f2937;
+            border: 1px solid #4b5563;
+            color: #9ca3af;
+            border-radius: 4px;
+            padding: 7px;
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .editor-tool-btn.active, .editor-tool-btn:hover {
+            background: #374151;
+            color: #ffd700;
+            border-color: #ffd700;
+        }
+
+        .editor-brush-sizes {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .editor-brush-size-btn {
+            flex: 1;
+            background: #1f2937;
+            border: 1px solid #374151;
+            color: #d1d5db;
+            border-radius: 4px;
+            padding: 5px 0;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .editor-brush-size-btn.active {
+            background: #b45309;
+            border-color: #f59e0b;
+            color: #fff;
+        }
+
+        .editor-palette-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .editor-palette-btn {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 7px 10px;
+            color: #e2e8f0;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+            text-align: left;
+        }
+
+        .editor-palette-btn:hover {
+            border-color: #94a3b8;
+            transform: translateX(2px);
+        }
+
+        .editor-palette-btn.active {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: #f59e0b;
+            color: #ffd700;
+            font-weight: bold;
+            box-shadow: inset 0 0 8px rgba(245, 158, 11, 0.2);
+        }
+
+        .palette-swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            flex-shrink: 0;
+        }
+
+        /* Área Central do Canvas */
+        .editor-canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #080b0e;
+        }
+
+        #editorCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .editor-statusbar {
+            position: absolute;
+            bottom: 12px;
+            right: 16px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 11px;
+            color: #94a3b8;
+            font-family: monospace;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+
+        .editor-hintbar {
+            position: absolute;
+            bottom: 12px;
+            left: 16px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 11px;
+            color: #cbd5e1;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
     </style>
 </head>
 
@@ -2576,8 +2860,8 @@
             <p>Defenda seu reino contra as hordas orc.</p>
             <div class="menu-actions">
                 <button id="startBtn" class="menu-btn primary">SINGLE-PLAYER<small>Campanha contra a IA</small></button>
-                <button id="multiplayerBtn" class="menu-btn">MULTIPLAYER<small>Partida local entre duas
-                        abas</small></button>
+                <button id="multiplayerBtn" class="menu-btn">MULTIPLAYER<small>Partida local entre duas abas</small></button>
+                <button id="editorBtn" class="menu-btn" style="border-color: #ffd700;">EDITOR DE MAPAS<small>Crie & personalize mundos</small></button>
             </div>
             <div id="modeNotice" role="status" aria-live="polite"></div>
         </div>
@@ -3078,11 +3362,91 @@
                             style="width: 100%; padding: 14px 10px; font-size: 15px;">
                             COMEÇAR JOGO
                         </button>
+                        <button id="lobbyDownloadMapBtn" class="wc3-action-btn"
+                            style="width: 100%; padding: 8px 10px; font-size: 12px; border-color: #ffd700; color: #ffd700;" title="Baixar arquivo JSON deste mapa para o seu computador">
+                            📥 BAIXAR MAPA (.JSON)
+                        </button>
                         <button id="lobbyLeaveRoomBtn" class="wc3-action-btn"
                             style="width: 100%; padding: 8px 10px; font-size: 12px;">
                             SAIR / CANCELAR SALA
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== WORLD EDITOR MODAL / TELA CHEIA ==================== -->
+    <div id="mapEditorModal">
+        <!-- Barra Superior -->
+        <div class="editor-topbar">
+            <div class="editor-title-group">
+                <div class="editor-title-text">⚔️ WORLD EDITOR</div>
+                <div class="editor-meta-inputs">
+                    <input type="text" id="editorMapNameInput" class="editor-input" placeholder="Nome do Mapa" style="width: 180px;" />
+                    <input type="text" id="editorMapAuthorInput" class="editor-input" placeholder="Autor" style="width: 130px;" />
+                    <select id="editorTilesetSelect" class="editor-input">
+                        <option value="floresta">Floresta & Planície</option>
+                        <option value="deserto">Deserto de Areia</option>
+                        <option value="pantano">Pântano Sombrio</option>
+                    </select>
+                    <span id="editorMapSizeBadge" style="font-size: 11px; color: #ffd700; background: #1e293b; padding: 4px 8px; border-radius: 4px; border: 1px solid #475569;">80 x 80</span>
+                </div>
+            </div>
+
+            <div class="editor-actions-group">
+                <button id="editorUndoBtn" class="editor-btn" title="Desfazer (Ctrl+Z)">↩️ Desfazer</button>
+                <button id="editorRedoBtn" class="editor-btn" title="Refazer (Ctrl+Y)">↪️ Refazer</button>
+                <button id="editorClearBtn" class="editor-btn" title="Limpar Mapa">🧹 Limpar</button>
+                <button id="editorImportBtn" class="editor-btn" title="Importar arquivo JSON">📤 Importar</button>
+                <button id="editorExportBtn" class="editor-btn" title="Exportar arquivo JSON para download">📥 Exportar</button>
+                <button id="editorSaveBtn" class="editor-btn primary" title="Salvar na pasta /maps do servidor">💾 Salvar no Servidor</button>
+                <button id="editorTestBtn" class="editor-btn primary" style="background: linear-gradient(180deg, #16a34a, #15803d); border-color: #22c55e;" title="Testar o mapa imediatamente em partida real">⚔️ Testar Agora</button>
+                <button id="editorCloseBtn" class="editor-btn danger" title="Voltar ao menu principal">❌ Sair</button>
+                <input type="file" id="editorFileInput" accept=".json" style="display: none;" />
+            </div>
+        </div>
+
+        <!-- Corpo: Ferramentas à Esquerda + Canvas Central -->
+        <div class="editor-body">
+            <div class="editor-sidebar">
+                <!-- Ferramentas Principais -->
+                <div class="editor-section-title">Modo de Desenho</div>
+                <div class="editor-tools-row">
+                    <button id="editorToolPencilBtn" class="editor-tool-btn active" data-tool="brush" title="Pincel [B]">✏️ Pincel</button>
+                    <button id="editorToolBucketBtn" class="editor-tool-btn" data-tool="bucket" title="Preencher Área [F]">🪣 Balde</button>
+                    <button id="editorToolEraserBtn" class="editor-tool-btn" data-tool="eraser" title="Borracha">🧹 Apagar</button>
+                </div>
+
+                <div class="editor-section-title">Tamanho do Pincel</div>
+                <div class="editor-brush-sizes">
+                    <button class="editor-brush-size-btn active" data-size="1">1x1</button>
+                    <button class="editor-brush-size-btn" data-size="2">2x2</button>
+                    <button class="editor-brush-size-btn" data-size="3">3x3</button>
+                    <button class="editor-brush-size-btn" data-size="5">5x5</button>
+                </div>
+
+                <!-- Terrenos -->
+                <div class="editor-section-title">🌱 Terrenos & Recursos</div>
+                <div id="editorPaletteTerrain" class="editor-palette-grid"></div>
+
+                <!-- Spawns / Bases -->
+                <div class="editor-section-title" style="margin-top: 10px;">👑 Spawns de Jogadores</div>
+                <div id="editorPaletteSpawns" class="editor-palette-grid"></div>
+
+                <!-- Mobs Neutros -->
+                <div class="editor-section-title" style="margin-top: 10px;">🐺 Mobs Neutros / Creeps</div>
+                <div id="editorPaletteEntities" class="editor-palette-grid"></div>
+            </div>
+
+            <!-- Canvas Central de Edição -->
+            <div class="editor-canvas-container" id="editorCanvasContainer">
+                <canvas id="editorCanvas"></canvas>
+                <div class="editor-hintbar">
+                    🖱️ Clique esquerdo: Pintar | Botão do Meio / Direito / Alt: Mover Câmera | Roda do Mouse: Zoom
+                </div>
+                <div class="editor-statusbar" id="editorCoordsDisplay">
+                    X: -- | Y: --
                 </div>
             </div>
         </div>

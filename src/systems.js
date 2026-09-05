@@ -17,7 +17,8 @@ import { networkTick } from './network.js';
 
 function initGame(mapIndex = 0, seed = Math.random(), customConfig = null) {
     gameState.mapIndex = mapIndex;
-    const spawnInfo = generateMap(mapIndex, seed);
+    const customMapData = customConfig?.mapData || (typeof mapIndex === 'object' ? mapIndex : null);
+    const spawnInfo = generateMap(typeof mapIndex === 'number' ? mapIndex : 0, seed, customMapData);
     gameState.resourceAmounts = gameState.map.map(row => row.map(terrain =>
         terrain === TERRAIN.GOLD_MINE ? CONFIG.GOLD_PER_MINE_TILE : terrain === TERRAIN.TREE ? CONFIG.WOOD_PER_TREE_TILE : 0
     ));
@@ -350,6 +351,22 @@ function initGame(mapIndex = 0, seed = Math.random(), customConfig = null) {
 
 
 function spawnCreepCamps() {
+    // Se o mapa customizado definiu acampamentos de creeps próprios
+    if (gameState.customCreeps && Array.isArray(gameState.customCreeps) && gameState.customCreeps.length > 0) {
+        for (const camp of gameState.customCreeps) {
+            const defType = UNIT_DEFS[camp.type] || UNIT_DEFS.CREEP_WOLF;
+            const count = camp.count || 1;
+            for (let i = 0; i < count; i++) {
+                const offset = (i - (count - 1) / 2) * 16;
+                const cx = (camp.x * CONFIG.TILE_SIZE) + offset;
+                const cy = (camp.y * CONFIG.TILE_SIZE);
+                const creep = new Unit(defType, cx, cy, 'neutral');
+                gameState.units.push(creep);
+            }
+        }
+        return;
+    }
+
     // Acampamentos em pontos estratégicos (intermediários e centro)
     const camps = [
         // Campos perto das rotas intermediárias (Lobos)
@@ -717,8 +734,8 @@ function updateGame() {
 function buildBotStructure(botId, type, nearPosition) {
     const def = BUILDING_DEFS[type];
     if (!def) return false;
-    const costGold = def.costGold || (type === 'HOUSE' ? 100 : type === 'TOWN_HALL' ? 200 : type === 'TOWER' ? 150 : 150);
-    const costWood = def.costWood || (type === 'HOUSE' ? 50 : type === 'TOWN_HALL' ? 150 : type === 'TOWER' ? 50 : 100);
+    const costGold = def.costGold ?? 150;
+    const costWood = def.costWood ?? 100;
 
     const botRes = (gameState.factionResources && gameState.factionResources[botId]) || gameState.enemyResources;
     if (botRes.gold < costGold || botRes.wood < costWood) {
@@ -933,6 +950,11 @@ function updateBotAI(botId = 'bot1') {
     // 2. Expansão de bases secundárias
     const botHouses = botBuildings.filter(b => b.name === 'Casa' && b.isConstructed);
     const botBarracks = botBuildings.filter(b => b.name === 'Quartel' && b.isConstructed);
+    const botArchery = botBuildings.filter(b => b.name === 'Arco e Flecha' && b.isConstructed);
+    const botAltars = botBuildings.filter(b => b.name === 'Altar dos Reis' && b.isConstructed);
+    const botForges = botBuildings.filter(b => b.name === 'Forja' && b.isConstructed);
+    const botHeroes = botUnits.filter(u => u.isHero);
+
     const hasCoreBase = botTownHalls.length >= 1 && botBarracks.length >= 1 && botHouses.length >= 1;
     const hasSurplusForExpansion = canAfford(200, 150) && botPeasants.length >= 3;
 
@@ -952,29 +974,58 @@ function updateBotAI(botId = 'bot1') {
         }
     }
 
-    // 3. Estruturas & População
-    const needsFood = botRes.foodUsed >= botRes.foodMax - 2;
-    if (needsFood && canAfford(100, 50) && botBuildings.length < 24) {
+    // 3. Construção de Estruturas Variadas e População
+    const needsFood = botRes.foodUsed >= botRes.foodMax - 3;
+    if (needsFood && canAfford(100, 50) && botBuildings.length < 30) {
+        // Casas para sustentar o exército
         const targetBase = botTownHalls[botHouses.length % botTownHalls.length] || mainBase;
         buildBotStructure(botId, 'HOUSE', targetBase);
-    } else if (botBarracks.length < botTownHalls.length && canAfford(150, 100)) {
+    } else if (botBarracks.length < Math.min(2, botTownHalls.length) && canAfford(150, 100)) {
+        // Quartel principal e secundário
         const targetBase = botTownHalls[botBarracks.length % botTownHalls.length] || mainBase;
         buildBotStructure(botId, 'BARRACKS', targetBase);
+    } else if (botArchery.length < 1 && canAfford(125, 75)) {
+        // Campo de Arquearia
+        buildBotStructure(botId, 'ARCHERY_RANGE', mainBase);
+    } else if (botAltars.length < 1 && canAfford(180, 100)) {
+        // Altar dos Reis para treinar Herói
+        buildBotStructure(botId, 'ALTAR', mainBase);
+    } else if (botForges.length < 1 && canAfford(180, 120)) {
+        // Forja para tecnologias e melhorias
+        buildBotStructure(botId, 'BLACKSMITH', mainBase);
     } else {
+        // Torres defensivas nas bases
         for (const th of botTownHalls) {
             const towersNearBase = botBuildings.filter(b => b.name === 'Torre' && Math.hypot(b.x - th.x, b.y - th.y) < 8);
-            if (towersNearBase.length < 1 && canAfford(150, 50)) {
+            if (towersNearBase.length < 2 && canAfford(150, 50)) {
                 buildBotStructure(botId, 'TOWER', th);
                 break;
             }
         }
     }
 
-    // 4. Treinamento Militar
+    // 4. Treinamento do Herói (Altar dos Reis)
+    if (botAltars.length > 0 && botHeroes.length === 0) {
+        const altar = botAltars.find(a => a.isConstructed);
+        if (altar && canAfford(200, 100) && botRes.foodUsed < botRes.foodMax) {
+            botRes.gold -= 200;
+            botRes.wood -= 100;
+            botRes.foodUsed += 2;
+            const aPos = getEntityPosition(altar);
+            const standPos = getStandPositionNearBuilding(altar, aPos.x, aPos.y + altar.height * CONFIG.TILE_SIZE, 16);
+            const hero = new Unit(UNIT_DEFS.HERO_PALADIN, standPos.x, standPos.y, botId);
+            hero.name = `Herói de ${botId === 'enemy' ? 'Orcs' : botId.toUpperCase()}`;
+            hero.color = CONFIG.FACTION_COLORS[botId] || '#f59e0b';
+            gameState.units.push(hero);
+            showToast(`⚠️ Um Herói inimigo foi convocado pelo exército de ${botId}!`);
+        }
+    }
+
+    // 5. Treinamento Militar Ativo (Quartel e Campo de Tiro)
     for (const barracks of botBarracks) {
         if (!barracks.isConstructed) continue;
-        if (botRes.foodUsed < botRes.foodMax && botArmy.length < 20) {
-            const isShaman = (botArmy.length + 1) % 3 === 0;
+        if (botRes.foodUsed < botRes.foodMax && botArmy.length < 25) {
+            const isShaman = (botArmy.length + 1) % 4 === 0;
             const unitDef = isShaman ? UNIT_DEFS.ORC_SHAMAN : UNIT_DEFS.ORC_WARRIOR;
             const costG = unitDef.costGold || 100;
             const costW = unitDef.costWood || 50;
@@ -992,8 +1043,25 @@ function updateBotAI(botId = 'bot1') {
         }
     }
 
-    // 5. Defesa e Esquadrões
-    const garrisonRequired = Math.min(botArmy.length, botTownHalls.length * 2);
+    for (const range of botArchery) {
+        if (!range.isConstructed) continue;
+        if (botRes.foodUsed < botRes.foodMax && botArmy.length < 25) {
+            const unitDef = UNIT_DEFS.ARCHER;
+            if (canAfford(unitDef.costGold || 75, unitDef.costWood || 40)) {
+                botRes.gold -= unitDef.costGold || 75;
+                botRes.wood -= unitDef.costWood || 40;
+                botRes.foodUsed += 1;
+
+                const bPos = getEntityPosition(range);
+                const standPos = getStandPositionNearBuilding(range, bPos.x, bPos.y + range.height * CONFIG.TILE_SIZE, unitDef.size || 8);
+                const archer = new Unit(unitDef, standPos.x, standPos.y, botId);
+                gameState.units.push(archer);
+            }
+        }
+    }
+
+    // 6. Defesa e Esquadrões de Combate
+    const garrisonRequired = Math.min(botArmy.length, 2);
     const garrisonUnits = botArmy.slice(0, garrisonRequired);
     const strikeSquad = botArmy.slice(garrisonRequired);
 
@@ -1004,7 +1072,7 @@ function updateBotAI(botId = 'bot1') {
         const thPos = getEntityPosition(th);
         for (const pu of aiState.knownPlayerUnits || []) {
             const dist = Math.hypot(pu.x - thPos.x, pu.y - thPos.y);
-            if (dist < 280 && dist < minThreatDist) {
+            if (dist < 320 && dist < minThreatDist) {
                 minThreatDist = dist;
                 activeThreat = pu.ref;
             }
@@ -1015,7 +1083,7 @@ function updateBotAI(botId = 'bot1') {
         for (const peon of botPeasants) {
             for (const pu of aiState.knownPlayerUnits || []) {
                 const dist = Math.hypot(pu.x - peon.x, pu.y - peon.y);
-                if (dist < 180 && dist < minThreatDist) {
+                if (dist < 220 && dist < minThreatDist) {
                     minThreatDist = dist;
                     activeThreat = pu.ref;
                 }
@@ -1038,7 +1106,7 @@ function updateBotAI(botId = 'bot1') {
         return;
     }
 
-    // Patrulha defensiva ao redor das bases
+    // Patrulha defensiva para a guarnição mínima
     garrisonUnits.forEach((defender, idx) => {
         const baseIndex = idx % botTownHalls.length;
         const assignedBase = botTownHalls[baseIndex];
@@ -1057,29 +1125,33 @@ function updateBotAI(botId = 'bot1') {
         }
     });
 
-    // 6. Ataques periódicos
-    const hasDiscoveredEnemyBase = (aiState.knownPlayerBuildings || []).length > 0;
-    const hasSurplusMilitary = strikeSquad.length >= 3;
-    const hasSurplusResources = botRes.gold >= 80 && botRes.wood >= 40;
-    const canLaunchAttack = hasSurplusMilitary && hasSurplusResources;
+    // 7. Ofensiva Pró-Ativa e Ataques Periódicos
+    // A IA ataca assim que tiver ao menos 2 combatentes (ou 1 herói) no esquadrão
+    const hasHeroInSquad = strikeSquad.some(u => u.isHero);
+    const hasSurplusMilitary = strikeSquad.length >= (hasHeroInSquad ? 1 : 2);
+    const canLaunchAttack = hasSurplusMilitary || aiState.lastAttackTimer >= 400;
 
     if (canLaunchAttack || aiState.attackState === 'ATTACKING') {
-        if (hasDiscoveredEnemyBase) {
-            aiState.attackState = 'ATTACKING';
-            let targetBuilding = aiState.knownPlayerBuildings.find(b => b.name === 'Torre' && b.ref?.health > 0) ||
-                aiState.knownPlayerBuildings.find(b => b.name === 'Town Hall' && b.ref?.health > 0) ||
-                aiState.knownPlayerBuildings.find(b => b.ref?.health > 0);
+        aiState.lastAttackTimer = 0;
+        const playerTownHall = gameState.buildings.find(b => b.owner === 'player' && (b.name === 'Town Hall' || b.type?.name === 'Town Hall') && b.health > 0);
+        const anyPlayerBuilding = gameState.buildings.find(b => b.owner === 'player' && b.health > 0);
+        const anyPlayerUnit = gameState.units.find(u => u.owner === 'player' && u.health > 0);
 
-            if (targetBuilding) {
-                const targetPos = getEntityPosition(targetBuilding);
-                assignFormationPositions(strikeSquad, targetPos.x, targetPos.y);
-            } else if (aiState.knownPlayerUnits && aiState.knownPlayerUnits.length > 0) {
-                const targetUnit = aiState.knownPlayerUnits[0];
-                assignFormationPositions(strikeSquad, targetUnit.x, targetUnit.y);
+        aiState.attackState = 'ATTACKING';
+        const primeTarget = playerTownHall || anyPlayerBuilding || anyPlayerUnit;
+
+        if (primeTarget) {
+            const targetPos = getEntityPosition(primeTarget);
+            assignFormationPositions(strikeSquad, targetPos.x, targetPos.y);
+            for (const soldier of strikeSquad) {
+                if (!soldier.attackTarget || soldier.attackTarget.health <= 0) {
+                    soldier.attackTarget = primeTarget;
+                }
             }
         } else {
+            // Rota de patrulha ofensiva caso ainda não tenha visto construções do jogador
             aiState.attackState = 'SCOUTING';
-            const waypoints = aiState.scoutWaypoints || [{ x: 40, y: 40 }];
+            const waypoints = aiState.scoutWaypoints || [{ x: 14, y: 14 }, { x: 40, y: 40 }];
             let currentWp = waypoints[aiState.scoutWaypointIndex % waypoints.length];
             const wpX = currentWp.x * CONFIG.TILE_SIZE;
             const wpY = currentWp.y * CONFIG.TILE_SIZE;
