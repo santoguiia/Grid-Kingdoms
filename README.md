@@ -1,8 +1,12 @@
 # Grid-Kingdoms
 
-Grid-Kingdoms is a JavaScript project for building and experimenting with grid-based strategy maps and simulations. It includes tools and assets for RTS-style maps, tile palettes, and server/client code to run and test scenarios.
+Grid-Kingdoms is a JavaScript project for building and experimenting with grid-based strategy maps and simulations. It includes tools and assets for RTS-style maps, tile palettes, and server/client scaffolding for a grid-based kingdom game.
 
 This repository currently contains project scaffolding and a maps directory with ready-to-add JSON map files. Update this README with implementation-specific instructions as features are added.
+
+## Acesse o GitHub Pages
+
+👉 **Jogue/veja a versão online aqui:** https://santoguiia.github.io/Grid-Kingdoms/
 
 ## Features
 
